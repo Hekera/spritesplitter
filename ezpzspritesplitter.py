@@ -165,7 +165,7 @@ class SplitterGUI():
 				new_label = ""
 				for name in sprite.names:
 					new_label += name + delimiter_entry.get()
-				return new_label[:new_label.rindex(delimiter.get())] + ".png"
+				return new_label[:new_label.rindex(delimiter.get())]
 		
 		def update_file_label(sprite):
 			if sprite.exclude:
@@ -191,7 +191,7 @@ class SplitterGUI():
 				for row in self.sprites:
 					for sprite in row:
 						if not sprite.exclude:
-							sprite.image.save(path.join(self.folder,get_file_label(sprite)))
+							sprite.image.save(path.join(self.folder,get_file_label(sprite) + ".png"))
 							error["text"] = "Sprites successfully saved!"
 			else:
 				error["text"] = "No directory selected!"
@@ -240,7 +240,7 @@ class SplitterGUI():
 		
 		exclude_toggle = Button(mode_input, text="Exclude Mode", command=toggle_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0])
 		exclude_toggle.pack(side=LEFT, padx=5)
-		delete_toggle = Button(mode_input, text="Delete Mode", command=toggle_delete_mode, fg=self.fg_color, bg=self.bg_colors[0])
+		delete_toggle = Button(mode_input, text="Clear Mode", command=toggle_delete_mode, fg=self.fg_color, bg=self.bg_colors[0])
 		delete_toggle.pack(side=LEFT, padx=5)
 		exclude_mode = [False, exclude_toggle]
 		delete_mode = [False, delete_toggle]
@@ -257,19 +257,18 @@ class SplitterGUI():
 		error.pack()
 		Button(submit_input, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		
-		
 		tiles = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
 			if i > 0:
 				row = []
 			for j in range(0, int(self.image.width/self.tile_width)+1):
 				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
-				frame.grid(row=i, column=j)
+				frame.grid(row=i, column=j, sticky="n")
 				if j > 0 and i > 0:
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
-					file_label = Label(frame, text=f"{i}-{j}.png", fg=self.fg_color, bg=self.bg_colors[1])
-					new_sprite = Sprite(image, f"{i}-{j}.png", file_label, ImageTk.PhotoImage(image.resize((80, 80), NEAREST)))
+					file_label = Label(frame, text=f"{i}-{j}", fg=self.fg_color, bg=self.bg_colors[1], wraplength=80)
+					new_sprite = Sprite(image, f"{i}-{j}", file_label, ImageTk.PhotoImage(image.resize((80, 80), NEAREST)))
 					row.append(new_sprite)
 					Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1]).pack()
 					file_label.pack()
