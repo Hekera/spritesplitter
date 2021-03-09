@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog as fd
 from PIL import Image, ImageTk
 from PIL.Image import NEAREST as NEAREST
+from os import path
 
 class Sprite():
 	
@@ -51,9 +52,12 @@ class SplitterGUI():
 				error["text"] = "You must choose an image file!"
 		
 		def open_file():
-			self.image = Image.open(fd.askopenfilename(filetypes=[("Image File",'.png')]))
-			file_name["text"] = self.image.filename[self.image.filename.rindex("/") + 1:]
-			file_dim ["text"] = f"{self.image.width} x {self.image.height}"
+			try:
+				self.image = Image.open(fd.askopenfilename(filetypes=[("Image File",'.png')]))
+				file_name["text"] = self.image.filename[self.image.filename.rindex("/") + 1:]
+				file_dim ["text"] = f"{self.image.width} x {self.image.height}"
+			except AttributeError:
+				pass
 		
 		self.window = Tk()
 		self.window.title("Ez Pz Sprite Splitter")
@@ -89,7 +93,6 @@ class SplitterGUI():
 		error = Label(submit, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
 		Button(submit, text="Let's go!",command=verify, fg=self.fg_color, bg=self.bg_colors[0]).pack()
-		Button(submit, text="Skip",command=self.editor, fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		
 		self.window.mainloop()
 
@@ -152,16 +155,20 @@ class SplitterGUI():
 			for i in range(len(self.sprites[0])):
 				append_name(index, i)
 		
-		def update_file_label(sprite):
-			if sprite.exclude:
-				sprite.label["text"] = ""
-			elif len(sprite.names) == 0:
-				sprite.label["text"] = sprite.default 
-			else:
+		def get_file_label(sprite):
+			if len(sprite.names) == 0:
+				return sprite.default
+			else: 
 				new_label = ""
 				for name in sprite.names:
 					new_label += name + delimiter_entry.get()
-				sprite.label["text"] = new_label[:new_label.rindex(delimiter_entry.get())]
+				return new_label[:new_label.rindex(delimiter.get())] + ".png"
+		
+		def update_file_label(sprite):
+			if sprite.exclude:
+				sprite.label["text"] = ""
+			else:
+				sprite.label["text"] = get_file_label(sprite)
 		
 		def update_file_labels():
 			for row in self.sprites:
@@ -169,10 +176,22 @@ class SplitterGUI():
 					update_file_label(sprite)
 		
 		def open_folder():
-			self.folder = fd.askdirectory()
+			folder = fd.askdirectory(mustexist=True)
+			if len(folder) > 0:
+				self.folder = folder
+				folder_name["text"] = folder
 	
 		def submit():
-			print("success!")
+			print("submitting...")
+			if hasattr(self, "folder"):
+				print("has folder!")
+				for row in self.sprites:
+					for sprite in row:
+						if not sprite.exclude:
+							sprite.image.save(path.join(self.folder,get_file_label(sprite)))
+							error["text"] = "Sprites successfully saved!"
+			else:
+				error["text"] = "No directory selected!"
 		
 		self.window.destroy()
 		self.window = Tk()
@@ -203,8 +222,8 @@ class SplitterGUI():
 		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		name_input = Frame(panel, bg=self.bg_colors[0])
 		name_input.pack()
-		submit = Frame(panel, bg=self.bg_colors[0])
-		submit.pack(side=BOTTOM)
+		submit_input = Frame(panel, bg=self.bg_colors[0])
+		submit_input.pack(side=BOTTOM)
 		folder_input = Frame(panel, bg=self.bg_colors[0])
 		folder_input.pack(side=BOTTOM)
 		
@@ -225,13 +244,13 @@ class SplitterGUI():
 		name_entry.pack(side=LEFT)
 		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
 		
-		folder_name = Label(folder_input, text="No directory selected.", fg=self.fg_color, bg=self.bg_colors[0])
+		folder_name = Label(folder_input, text="No directory selected.", fg=self.fg_color, bg=self.bg_colors[0], wraplength=180)
 		folder_name.pack()
 		Button(folder_input, text="Browse...",command=open_folder, fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		
-		error = Label(submit, text="", fg=self.fg_color, bg=self.bg_colors[0])
+		error = Label(submit_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
-		Button(submit, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		Button(submit_input, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		
 		
 		tiles = []
