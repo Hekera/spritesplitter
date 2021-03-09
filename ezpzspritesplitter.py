@@ -126,7 +126,7 @@ class SplitterGUI():
 		
 		def add_name():
 			new_name = name_entry.get()
-			if not name_list.count(new_name):
+			if new_name != "" and not name_list.count(new_name):
 				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0], width=25, wraplength=175)
 				name_buttons.append(button)
 				button.pack(padx=5, pady=3)
@@ -231,6 +231,7 @@ class SplitterGUI():
 		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 14)).pack(padx=5, pady=5)
 		name_input = Frame(panel, bg=self.bg_colors[0])
 		name_input.pack(padx=5)
+		name_panel = Frame(panel, bg=self.bg_colors[0])
 		submit_input = Frame(panel, bg=self.bg_colors[0])
 		submit_input.pack(side=BOTTOM, padx=5, pady=10)
 		folder_input = Frame(panel, bg=self.bg_colors[0])
