@@ -77,10 +77,10 @@ class SplitterGUI():
 		Button(file_input, text="Browse...",command=open_file, fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		
 		Label(dimension_label, text="Tile Width:", fg=self.fg_color, bg=self.bg_colors[0]).pack(pady=5)
-		width_entry = Entry(dimension_input, width=5, bg=self.bg_colors[2])
+		width_entry = Entry(dimension_input, width=5, fg=self.fg_color, bg=self.bg_colors[2])
 		width_entry.pack(padx=5, pady=5)
 		Label(dimension_label, text="Tile Height:", fg=self.fg_color, bg=self.bg_colors[0]).pack(pady=5)
-		height_entry = Entry(dimension_input, width=5, bg=self.bg_colors[2])
+		height_entry = Entry(dimension_input, width=5, fg=self.fg_color, bg=self.bg_colors[2])
 		height_entry.pack(padx=5, pady=5)
 		
 		error = Label(submit, text="", fg=self.fg_color, bg=self.bg_colors[0])
@@ -131,8 +131,7 @@ class SplitterGUI():
 		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
 		workspace = Frame(wrapper_canvas, padx=5, pady=10, bg=self.bg_colors[0])
 		workspace.pack(side=LEFT)
-		self.canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
-		wrapper_canvas.config(width=300,height=300, scrollregion=(0,0,workspace.winfo_width(),workspace.winfo_height()))
+		wrapper_canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
 		
 		#panel stuff
 		
@@ -149,27 +148,25 @@ class SplitterGUI():
 				if j > 0 and i > 0:
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
-					row.append(Sprite(image, f"{j}-{i}.png"))
-					tk_image = ImageTk.PhotoImage(image)
-					Button(workspace, image=tk_image, command=append_name, relief=FLAT).pack()
-					file_label = Label(workspace, text=f"{j}-{i}.png", fg=self.fg_color, bg=self.bg_colors[0])
+					row.append(Sprite(image, f"{i}-{j}.png"))
+					tk_image = ImageTk.PhotoImage(image.resize((80, 80)))
+					Button(frame, image=tk_image, command=append_name, relief=FLAT).pack()
+					file_label = Label(frame, text=f"{i}-{j}.png", fg=self.fg_color, bg=self.bg_colors[0])
 					file_label.pack()
 					label_row.append(file_label)
 				elif j == 0 and i > 0:
-					Button(frame, text="Apply to Row",command=append_name_row, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+					Button(frame, text="",command=append_name_row, fg=self.fg_color, bg=self.bg_colors[0],width=2,height=6).pack()
 				elif i == 0 and j > 0:
-					Button(frame, text="Apply to Col",command=append_name_col, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+					Button(frame, text="",command=append_name_col, fg=self.fg_color, bg=self.bg_colors[0],width=10,height=1).pack()
 			if i > 0:
 				tiles.append(row)
 				file_labels.append(label_row)
 			
 		self.sprites = tuple(tiles)
 		
+		workspace.update()
+		wrapper_canvas.config(width=300,height=300, scrollregion=(0,0,workspace.winfo_width(),workspace.winfo_height()))
 		
-		print(self.image.filename)
-		tk_image = ImageTk.PhotoImage(self.image)
-		image = Button(self.window, image=tk_image, command=test, relief=FLAT)
-		image.pack()
 		
 		self.window.mainloop()
 
