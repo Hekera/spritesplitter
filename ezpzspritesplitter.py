@@ -5,11 +5,11 @@ from PIL import Image, ImageTk
 class Sprite():
 	names = []
 	exclude = False
-	default = ""
 	
-	def __init__(self, image, default):
+	def __init__(self, image, default, file_label):
 		self.image = image
 		self.default = default
+		self.label = file_label
 
 class SplitterUtil():
 	
@@ -23,7 +23,7 @@ class SplitterGUI():
 	fg_color = "white"
 	sprite_width = 0
 	sprite_height = 0
-	exclude_mode = False
+	selected_name_index = -1
 
 	def __init__(self):
 		self.landing()
@@ -93,34 +93,81 @@ class SplitterGUI():
 
 
 	def editor(self):
-		names = set()
+		names = []
 		name_buttons = []
-		selected_name = ""
 		
-		def change_exclude_mode():
-			self.exclude_mode = not self.exclude_mode 
+		def toggle_exclude_mode():
+			exclude_mode[0] = True
+			exclude_mode[1]["bg"] = "red"
+			delete_mode[0] = False
+			delete_mode[1]["bg"] = self.bg_colors[0]
+			if self.selected_name_index > -1:
+				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
+		
+		def toggle_delete_mode():
+			exclude_mode[0] = False
+			exclude_mode[1]["bg"] = self.bg_colors[0]
+			delete_mode[0] = True
+			delete_mode[1]["bg"] = "red"
+			if self.selected_name_index > -1:
+				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
 		
 		def add_name():
 			new_name = name_entry.get()
-			if not names.issuperset({new_name}):
-				button = Button(panel, text=new_name, fg=self.fg_color, bg=self.bg_colors[0])
+			if not names.count(new_name):
+				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0])
 				name_buttons.append(button)
 				button.pack()
-				names.add(new_name)
+				names.append(new_name)
 		
 		def change_selected_name(name):
-			selected_name = name
+			exclude_mode[0] = False
+			exclude_mode[1]["bg"] = self.bg_colors[0]
+			delete_mode[0] = False
+			delete_mode[1]["bg"] = self.bg_colors[0]
+			if self.selected_name_index > -1:
+				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
+			self.selected_name_index = names.index(name)
+			name_buttons[self.selected_name_index]["bg"] = "red"
 	
 		def append_name(row_index, col_index):
-			self.sprites[row_index][col_index].names.append(selected_name)
-	
+			sprite = self.sprites[row_index][col_index]
+			if exclude_mode[0]:
+				sprite.exclude = not sprite.exclude
+				update_file_label(sprite)
+			elif delete_mode[0]:
+				sprite.names = []
+				update_file_label(sprite)
+			else:
+				if self.selected_name_index > -1:
+					sprite.names.append(names[self.selected_name_index])
+					update_file_label(sprite)
+		
 		def append_name_col(index):
-			for i in self.sprites:
+			for i in range(len(self.sprites)):
 				append_name(i, index)
 	
 		def append_name_row(index):
-			for i in self.sprites[0]:
+			for i in range(len(self.sprites[0])):
+				
 				append_name(index, i)
+		
+		def update_file_label(sprite):
+			if sprite.exclude:
+				sprite.label["text"] = ""
+			elif len(sprite.names) == 0:
+				sprite.label["text"] = sprite.default 
+			else:
+				new_label = ""
+				for name in sprite.names:
+					new_label += name + delimiter_entry.get()
+				sprite.label["text"] = new_label[:new_label.rindex(delimiter_entry.get())]
+		
+		def update_file_labels():
+			for row in self.sprites:
+				for sprite in row:
+					update_file_label(sprite)
+	
 		
 		def open_folder():
 			self.folder = fd.askdirectory()
@@ -152,7 +199,8 @@ class SplitterGUI():
 		
 		delimiter_input = Frame(panel, bg=self.bg_colors[0])
 		delimiter_input.pack()
-		Button(panel, text="Exclude Mode", command=change_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		mode_input = Frame(panel, bg=self.bg_colors[0])
+		mode_input.pack()
 		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		name_input = Frame(panel, bg=self.bg_colors[0])
 		name_input.pack()
@@ -164,6 +212,13 @@ class SplitterGUI():
 		Label(delimiter_input, text="Delimiter:", fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
 		delimiter_entry = Entry(delimiter_input, fg=self.fg_color, bg=self.bg_colors[2], width=4)
 		delimiter_entry.pack(side=LEFT)
+		
+		exclude_toggle = Button(mode_input, text="Exclude Mode", command=toggle_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0])
+		exclude_toggle.pack(side=LEFT)
+		delete_toggle = Button(mode_input, text="Delete Mode", command=toggle_delete_mode, fg=self.fg_color, bg=self.bg_colors[0])
+		delete_toggle.pack(side=LEFT)
+		exclude_mode = [False, exclude_toggle]
+		delete_mode = [False, delete_toggle]
 		
 		name_entry = Entry(name_input, fg=self.fg_color, bg=self.bg_colors[2])
 		name_entry.pack(side=LEFT)
@@ -179,30 +234,29 @@ class SplitterGUI():
 		
 		
 		tiles = []
-		file_labels = []
+		tk_images = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
 			if i > 0:
 				row = []
-				label_row = []
 			for j in range(0, int(self.image.width/self.tile_width)+1):
+				if j == 0:
+					tk_images.append([])
 				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
 				frame.grid(row=i, column=j)
 				if j > 0 and i > 0:
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
-					row.append(Sprite(image, f"{i}-{j}.png"))
-					tk_image = ImageTk.PhotoImage(image.resize((80, 80)))
-					Button(frame, image=tk_image, command=append_name, relief=FLAT).pack()
+					tk_images[i-1].append(ImageTk.PhotoImage(image.resize((80, 80))))
+					Button(frame, image=tk_images[i-1][j-1], command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT).pack()
 					file_label = Label(frame, text=f"{i}-{j}.png", fg=self.fg_color, bg=self.bg_colors[0])
 					file_label.pack()
-					label_row.append(file_label)
+					row.append(Sprite(image, f"{i}-{j}.png", file_label))
 				elif j == 0 and i > 0:
-					Button(frame, text="",command=append_name_row, fg=self.fg_color, bg=self.bg_colors[0],width=2,height=6).pack()
+					Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=6).pack()
 				elif i == 0 and j > 0:
-					Button(frame, text="",command=append_name_col, fg=self.fg_color, bg=self.bg_colors[0],width=10,height=1).pack()
+					Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=10,height=1).pack()
 			if i > 0:
-				tiles.append(row)
-				file_labels.append(label_row)
+				tiles.append(tuple(row))
 			
 		self.sprites = tuple(tiles)
 		
