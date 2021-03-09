@@ -1,15 +1,17 @@
 from tkinter import *
 from tkinter import filedialog as fd
 from PIL import Image, ImageTk
+from PIL.Image import NEAREST as NEAREST
 
 class Sprite():
-	names = []
-	exclude = False
 	
-	def __init__(self, image, default, file_label):
+	def __init__(self, image, default, file_label, tk_image):
+		self.names = []
+		self.exclude = False
 		self.image = image
 		self.default = default
 		self.label = file_label
+		self.tk_image = tk_image
 
 class SplitterUtil():
 	
@@ -93,7 +95,7 @@ class SplitterGUI():
 
 
 	def editor(self):
-		names = []
+		name_list = []
 		name_buttons = []
 		
 		def toggle_exclude_mode():
@@ -114,11 +116,11 @@ class SplitterGUI():
 		
 		def add_name():
 			new_name = name_entry.get()
-			if not names.count(new_name):
+			if not name_list.count(new_name):
 				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0])
 				name_buttons.append(button)
 				button.pack()
-				names.append(new_name)
+				name_list.append(new_name)
 		
 		def change_selected_name(name):
 			exclude_mode[0] = False
@@ -127,7 +129,7 @@ class SplitterGUI():
 			delete_mode[1]["bg"] = self.bg_colors[0]
 			if self.selected_name_index > -1:
 				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
-			self.selected_name_index = names.index(name)
+			self.selected_name_index = name_list.index(name)
 			name_buttons[self.selected_name_index]["bg"] = "red"
 	
 		def append_name(row_index, col_index):
@@ -138,11 +140,9 @@ class SplitterGUI():
 			elif delete_mode[0]:
 				sprite.names = []
 				update_file_label(sprite)
-			else:
-				if self.selected_name_index > -1:
-					name = names[self.selected_name_index]
-					sprite.names.append(name)
-					update_file_label(sprite)
+			elif self.selected_name_index > -1:
+				sprite.names.append(name_list[self.selected_name_index])
+				update_file_label(sprite)
 		
 		def append_name_col(index):
 			for i in range(len(self.sprites)):
@@ -209,7 +209,9 @@ class SplitterGUI():
 		folder_input.pack(side=BOTTOM)
 		
 		Label(delimiter_input, text="Delimiter:", fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
-		delimiter_entry = Entry(delimiter_input, fg=self.fg_color, bg=self.bg_colors[2], width=4)
+		delimiter = StringVar(value="_")
+		delimiter.trace_add("write", lambda name, index, mode: update_file_labels())
+		delimiter_entry = Entry(delimiter_input, textvariable=delimiter, fg=self.fg_color, bg=self.bg_colors[2], width=4)
 		delimiter_entry.pack(side=LEFT)
 		
 		exclude_toggle = Button(mode_input, text="Exclude Mode", command=toggle_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0])
@@ -233,23 +235,20 @@ class SplitterGUI():
 		
 		
 		tiles = []
-		tk_images = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
 			if i > 0:
 				row = []
 			for j in range(0, int(self.image.width/self.tile_width)+1):
-				if j == 0:
-					tk_images.append([])
 				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
 				frame.grid(row=i, column=j)
 				if j > 0 and i > 0:
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
-					tk_images[i-1].append(ImageTk.PhotoImage(image.resize((80, 80))))
-					Button(frame, image=tk_images[i-1][j-1], command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1]).pack()
 					file_label = Label(frame, text=f"{i}-{j}.png", fg=self.fg_color, bg=self.bg_colors[1])
+					new_sprite = Sprite(image, f"{i}-{j}.png", file_label, ImageTk.PhotoImage(image.resize((80, 80), NEAREST)))
+					row.append(new_sprite)
+					Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1]).pack()
 					file_label.pack()
-					row.append(Sprite(image, f"{i}-{j}.png", file_label))
 				elif j == 0 and i > 0:
 					Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=6).pack()
 				elif i == 0 and j > 0:
