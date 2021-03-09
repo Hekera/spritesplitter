@@ -96,7 +96,18 @@ class SplitterGUI():
 		
 		def add_name():
 			names.append(name_input.get())
-		
+	
+		def append_name(row_index, col_index):
+			self.sprites[row_index][col_index].names.append(selected_name)
+	
+		def append_name_col(index):
+			for i in self.sprites:
+				append_name(i, index)
+	
+		def append_name_row(index):
+			for i in self.sprites[0]:
+				append_name(index, i)
+	
 		def test():
 			print("success!")
 		
@@ -118,10 +129,10 @@ class SplitterGUI():
 		vbar.config(command=wrapper_canvas.yview)
 		wrapper_canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
 		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
-		wrapper_canvas.config(width=300,height=300, scrollregion=(0,0,1000,1000))
-		
-		workspace = Frame(self.window, padx=5, pady=10, bg=self.bg_colors[1])
+		workspace = Frame(wrapper_canvas, padx=5, pady=10, bg=self.bg_colors[0])
 		workspace.pack(side=LEFT)
+		self.canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
+		wrapper_canvas.config(width=300,height=300, scrollregion=(0,0,workspace.winfo_width(),workspace.winfo_height()))
 		
 		#panel stuff
 		
@@ -131,21 +142,28 @@ class SplitterGUI():
 		for i in range(0, int(self.image.height/self.tile_height)+1):
 			if i > 0:
 				row = []
-				label_row[]
-				for j in range(0, int(self.image.width/self.tile_width)+1):
-					frame = Frame(workspace, bg=self.bg_colors[0])
-					frame.grid(row=i, column=j)
-					if j > 0:
-						coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
-						row.append(Sprite(Image.crop(box=coords)))
-						Button(workspace, image=tk_image, command=test, relief=FLAT).pack()
-						file_label = Label(workspace, text=f"{j}-{i}.png", fg=self.fg_color, bg=self.bg_colors[0])
-						file_label.pack()
-						label_row.append(file_label)
+				label_row = []
+			for j in range(0, int(self.image.width/self.tile_width)+1):
+				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
+				frame.grid(row=i, column=j)
+				if j > 0 and i > 0:
+					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
+					image = self.image.crop(box=coords)
+					row.append(Sprite(image, f"{j}-{i}.png"))
+					tk_image = ImageTk.PhotoImage(image)
+					Button(workspace, image=tk_image, command=append_name, relief=FLAT).pack()
+					file_label = Label(workspace, text=f"{j}-{i}.png", fg=self.fg_color, bg=self.bg_colors[0])
+					file_label.pack()
+					label_row.append(file_label)
+				elif j == 0 and i > 0:
+					Button(frame, text="Apply to Row",command=append_name_row, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+				elif i == 0 and j > 0:
+					Button(frame, text="Apply to Col",command=append_name_col, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+			if i > 0:
 				tiles.append(row)
 				file_labels.append(label_row)
 			
-		
+		self.sprites = tuple(tiles)
 		
 		
 		print(self.image.filename)
