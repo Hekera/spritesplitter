@@ -104,6 +104,10 @@ class SplitterGUI():
 		def on_mousewheel(event):
 			wrapper_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 		
+		def get_resize():
+			multiplier = max(80//self.tile_width, 80//self.tile_height)
+			return (multiplier*self.tile_width, multiplier*self.tile_height)
+		
 		def toggle_exclude_mode():
 			exclude_mode[0] = True
 			exclude_mode[1]["bg"] = "red"
@@ -123,7 +127,7 @@ class SplitterGUI():
 		def add_name():
 			new_name = name_entry.get()
 			if not name_list.count(new_name):
-				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0])
+				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0], width=25, wraplength=175)
 				name_buttons.append(button)
 				button.pack(padx=5, pady=3)
 				name_list.append(new_name)
@@ -217,7 +221,7 @@ class SplitterGUI():
 		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
 		workspace = Frame(wrapper_canvas, bg=self.bg_colors[1])
 		workspace.pack(side=LEFT, padx=5, pady=10)
-		wrapper_canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
+		wrapper_canvas.create_window((10,10), window=workspace, anchor="nw",tags="workspace")
 		
 		#Label(panel, text="Options", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 20) ).pack()
 		delimiter_input = Frame(panel, bg=self.bg_colors[0])
@@ -268,22 +272,21 @@ class SplitterGUI():
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
 					file_label = Label(frame, text=f"{i}-{j}", fg=self.fg_color, bg=self.bg_colors[1], wraplength=80)
-					new_sprite = Sprite(image, f"{i}-{j}", file_label, ImageTk.PhotoImage(image.resize((80, 80), NEAREST)))
+					new_sprite = Sprite(image, f"{i}-{j}", file_label, ImageTk.PhotoImage(image.resize(get_resize(), NEAREST)))
 					row.append(new_sprite)
 					Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1]).pack()
 					file_label.pack()
 				elif j == 0 and i > 0:
-					Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=6).pack()
+					Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=get_resize()[1]//13).pack()
 				elif i == 0 and j > 0:
-					Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=10,height=1).pack()
+					Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=get_resize()[0]//8,height=1).pack()
 			if i > 0:
 				tiles.append(tuple(row))
 			
 		self.sprites = tuple(tiles)
 		
 		workspace.update()
-		wrapper_canvas.config(width=300,height=300, scrollregion=(0,0,workspace.winfo_width(),workspace.winfo_height()))
-		
+		wrapper_canvas.config(width=500,height=500, scrollregion=(0,0,workspace.winfo_width() + 10,workspace.winfo_height() + 10))
 		
 		self.window.mainloop()
 
