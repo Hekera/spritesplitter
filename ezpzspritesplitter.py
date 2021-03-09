@@ -140,7 +140,8 @@ class SplitterGUI():
 				update_file_label(sprite)
 			else:
 				if self.selected_name_index > -1:
-					sprite.names.append(names[self.selected_name_index])
+					name = names[self.selected_name_index]
+					sprite.names.append(name)
 					update_file_label(sprite)
 		
 		def append_name_col(index):
@@ -149,7 +150,6 @@ class SplitterGUI():
 	
 		def append_name_row(index):
 			for i in range(len(self.sprites[0])):
-				
 				append_name(index, i)
 		
 		def update_file_label(sprite):
@@ -167,7 +167,6 @@ class SplitterGUI():
 			for row in self.sprites:
 				for sprite in row:
 					update_file_label(sprite)
-	
 		
 		def open_folder():
 			self.folder = fd.askdirectory()
@@ -193,7 +192,7 @@ class SplitterGUI():
 		vbar.config(command=wrapper_canvas.yview)
 		wrapper_canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
 		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
-		workspace = Frame(wrapper_canvas, padx=5, pady=10, bg=self.bg_colors[0])
+		workspace = Frame(wrapper_canvas, padx=5, pady=10, bg=self.bg_colors[1])
 		workspace.pack(side=LEFT)
 		wrapper_canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
 		
@@ -247,8 +246,8 @@ class SplitterGUI():
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
 					tk_images[i-1].append(ImageTk.PhotoImage(image.resize((80, 80))))
-					Button(frame, image=tk_images[i-1][j-1], command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT).pack()
-					file_label = Label(frame, text=f"{i}-{j}.png", fg=self.fg_color, bg=self.bg_colors[0])
+					Button(frame, image=tk_images[i-1][j-1], command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1]).pack()
+					file_label = Label(frame, text=f"{i}-{j}.png", fg=self.fg_color, bg=self.bg_colors[1])
 					file_label.pack()
 					row.append(Sprite(image, f"{i}-{j}.png", file_label))
 				elif j == 0 and i > 0:
