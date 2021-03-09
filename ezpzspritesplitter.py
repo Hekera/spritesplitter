@@ -21,8 +21,9 @@ class SplitterGUI():
 	util = SplitterUtil()
 	bg_colors = ("#202124", "#35363a", "#3c4043")
 	fg_color = "white"
-	sprite_width = 0;
-	sprite_height = 0;
+	sprite_width = 0
+	sprite_height = 0
+	exclude_mode = False
 
 	def __init__(self):
 		self.landing()
@@ -92,10 +93,23 @@ class SplitterGUI():
 
 
 	def editor(self):
-		names = []
+		names = set()
+		name_buttons = []
+		selected_name = ""
+		
+		def change_exclude_mode():
+			self.exclude_mode = not self.exclude_mode 
 		
 		def add_name():
-			names.append(name_input.get())
+			new_name = name_entry.get()
+			if not names.issuperset({new_name}):
+				button = Button(panel, text=new_name, fg=self.fg_color, bg=self.bg_colors[0])
+				name_buttons.append(button)
+				button.pack()
+				names.add(new_name)
+		
+		def change_selected_name(name):
+			selected_name = name
 	
 		def append_name(row_index, col_index):
 			self.sprites[row_index][col_index].names.append(selected_name)
@@ -107,8 +121,11 @@ class SplitterGUI():
 		def append_name_row(index):
 			for i in self.sprites[0]:
 				append_name(index, i)
+		
+		def open_folder():
+			self.folder = fd.askdirectory()
 	
-		def test():
+		def submit():
 			print("success!")
 		
 		self.window.destroy()
@@ -133,7 +150,32 @@ class SplitterGUI():
 		workspace.pack(side=LEFT)
 		wrapper_canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
 		
-		#panel stuff
+		delimiter_input = Frame(panel, bg=self.bg_colors[0])
+		delimiter_input.pack()
+		Button(panel, text="Exclude Mode", command=change_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		name_input = Frame(panel, bg=self.bg_colors[0])
+		name_input.pack()
+		submit = Frame(panel, bg=self.bg_colors[0])
+		submit.pack(side=BOTTOM)
+		folder_input = Frame(panel, bg=self.bg_colors[0])
+		folder_input.pack(side=BOTTOM)
+		
+		Label(delimiter_input, text="Delimiter:", fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
+		delimiter_entry = Entry(delimiter_input, fg=self.fg_color, bg=self.bg_colors[2], width=4)
+		delimiter_entry.pack(side=LEFT)
+		
+		name_entry = Entry(name_input, fg=self.fg_color, bg=self.bg_colors[2])
+		name_entry.pack(side=LEFT)
+		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
+		
+		folder_name = Label(folder_input, text="No directory selected.", fg=self.fg_color, bg=self.bg_colors[0])
+		folder_name.pack()
+		Button(folder_input, text="Browse...",command=open_folder, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		
+		error = Label(submit, text="", fg=self.fg_color, bg=self.bg_colors[0])
+		error.pack()
+		Button(submit, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[0]).pack()
 		
 		
 		tiles = []
