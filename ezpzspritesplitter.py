@@ -101,6 +101,9 @@ class SplitterGUI():
 		name_list = []
 		name_buttons = []
 		
+		def on_mousewheel(event):
+			wrapper_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+		
 		def toggle_exclude_mode():
 			exclude_mode[0] = True
 			exclude_mode[1]["bg"] = "red"
@@ -122,7 +125,7 @@ class SplitterGUI():
 			if not name_list.count(new_name):
 				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0])
 				name_buttons.append(button)
-				button.pack()
+				button.pack(padx=5, pady=3)
 				name_list.append(new_name)
 		
 		def change_selected_name(name):
@@ -210,22 +213,24 @@ class SplitterGUI():
 		vbar.pack(side=RIGHT, fill=Y)
 		vbar.config(command=wrapper_canvas.yview)
 		wrapper_canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+		wrapper_canvas.bind_all("<MouseWheel>", on_mousewheel)
 		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
-		workspace = Frame(wrapper_canvas, padx=5, pady=10, bg=self.bg_colors[1])
-		workspace.pack(side=LEFT)
+		workspace = Frame(wrapper_canvas, bg=self.bg_colors[1])
+		workspace.pack(side=LEFT, padx=5, pady=10)
 		wrapper_canvas.create_window((0,0), window=workspace, anchor="nw",tags="workspace")
 		
+		#Label(panel, text="Options", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 20) ).pack()
 		delimiter_input = Frame(panel, bg=self.bg_colors[0])
-		delimiter_input.pack()
+		delimiter_input.pack(padx=5, pady=10)
 		mode_input = Frame(panel, bg=self.bg_colors[0])
-		mode_input.pack()
-		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		mode_input.pack(padx=5, pady=5)
+		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 14)).pack(padx=5, pady=5)
 		name_input = Frame(panel, bg=self.bg_colors[0])
-		name_input.pack()
+		name_input.pack(padx=5)
 		submit_input = Frame(panel, bg=self.bg_colors[0])
-		submit_input.pack(side=BOTTOM)
+		submit_input.pack(side=BOTTOM, padx=5, pady=10)
 		folder_input = Frame(panel, bg=self.bg_colors[0])
-		folder_input.pack(side=BOTTOM)
+		folder_input.pack(side=BOTTOM, padx=5)
 		
 		Label(delimiter_input, text="Delimiter:", fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
 		delimiter = StringVar(value="_")
@@ -234,15 +239,15 @@ class SplitterGUI():
 		delimiter_entry.pack(side=LEFT)
 		
 		exclude_toggle = Button(mode_input, text="Exclude Mode", command=toggle_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0])
-		exclude_toggle.pack(side=LEFT)
+		exclude_toggle.pack(side=LEFT, padx=5)
 		delete_toggle = Button(mode_input, text="Delete Mode", command=toggle_delete_mode, fg=self.fg_color, bg=self.bg_colors[0])
-		delete_toggle.pack(side=LEFT)
+		delete_toggle.pack(side=LEFT, padx=5)
 		exclude_mode = [False, exclude_toggle]
 		delete_mode = [False, delete_toggle]
 		
 		name_entry = Entry(name_input, fg=self.fg_color, bg=self.bg_colors[2])
 		name_entry.pack(side=LEFT)
-		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
+		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT, padx=5)
 		
 		folder_name = Label(folder_input, text="No directory selected.", fg=self.fg_color, bg=self.bg_colors[0], wraplength=180)
 		folder_name.pack()
