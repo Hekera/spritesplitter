@@ -3,7 +3,7 @@
 This script is designed to be an easy-to-use, GUI-based method of taking a large spritesheet and splitting it into many sprites of the same size. 
 It also allows for efficient naming of sprites, especially if they are grouped in rows/columns of similarly-named sprites.
 
-#Instructions:
+# Instructions:
 Simply load your spritesheet up, enter the height and width of each tile, and press the button to get started.
 This will take you to the editor window, where you can assign names to certain sprites or use exclude mode to prevent them from being exported.
 You may then choose to export your sprites directly with the assigned defaults (and rename them outside the program), or assign names within the program.
