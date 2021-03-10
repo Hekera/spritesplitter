@@ -14,18 +14,10 @@ class Sprite():
 		self.label = file_label
 		self.tk_image = tk_image
 
-class SplitterUtil():
-	
-	def __init__(self):
-		pass
-	
-
 class SplitterGUI():
-	util = SplitterUtil()
-	bg_colors = ("#202124", "#35363a", "#3c4043")
+	bg_colors = ("#202124", "#35363a", "#4f5459")
 	fg_color = "white"
-	sprite_width = 0
-	sprite_height = 0
+	tile_display_size = 80
 	selected_name_index = -1
 
 	def __init__(self):
@@ -81,18 +73,18 @@ class SplitterGUI():
 		file_name.pack()
 		file_dim = Label(file_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		file_dim.pack()
-		Button(file_input, text="Browse...",command=open_file, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		Button(file_input, text="Browse...",command=open_file, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		Label(dimension_label, text="Tile Width:", fg=self.fg_color, bg=self.bg_colors[0]).pack(pady=5)
-		width_entry = Entry(dimension_input, width=5, fg=self.fg_color, bg=self.bg_colors[2])
+		width_entry = Entry(dimension_input, width=5, fg=self.fg_color, bg=self.bg_colors[2], relief=FLAT)
 		width_entry.pack(padx=5, pady=5)
 		Label(dimension_label, text="Tile Height:", fg=self.fg_color, bg=self.bg_colors[0]).pack(pady=5)
-		height_entry = Entry(dimension_input, width=5, fg=self.fg_color, bg=self.bg_colors[2])
+		height_entry = Entry(dimension_input, width=5, fg=self.fg_color, bg=self.bg_colors[2], relief=FLAT)
 		height_entry.pack(padx=5, pady=5)
 		
 		error = Label(submit, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
-		Button(submit, text="Let's go!",command=verify, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		Button(submit, text="Let's go!",command=verify, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		self.window.mainloop()
 
@@ -108,20 +100,20 @@ class SplitterGUI():
 			names_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 		
 		def get_resize():
-			multiplier = max(80//self.tile_width, 80//self.tile_height)
+			multiplier = max(self.tile_display_size//self.tile_width, self.tile_display_size//self.tile_height)
 			return (multiplier*self.tile_width, multiplier*self.tile_height)
 		
 		def toggle_exclude_mode():
 			exclude_mode[0] = True
 			exclude_mode[1]["bg"] = "red"
 			delete_mode[0] = False
-			delete_mode[1]["bg"] = self.bg_colors[0]
+			delete_mode[1]["bg"] = self.bg_colors[1]
 			if self.selected_name_index > -1:
 				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
 		
 		def toggle_delete_mode():
 			exclude_mode[0] = False
-			exclude_mode[1]["bg"] = self.bg_colors[0]
+			exclude_mode[1]["bg"] = self.bg_colors[1]
 			delete_mode[0] = True
 			delete_mode[1]["bg"] = "red"
 			if self.selected_name_index > -1:
@@ -131,7 +123,7 @@ class SplitterGUI():
 			new_name = name_entry.get()
 			if new_name != "" and not name_list.count(new_name):
 				name_entry.delete(0, len(new_name))
-				button = Button(names_panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0], width=25, wraplength=175)
+				button = Button(names_panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0], width=25, wraplength=175, relief=FLAT)
 				name_buttons.append(button)
 				button.pack(padx=5, pady=3)
 				name_list.append(new_name)
@@ -140,9 +132,9 @@ class SplitterGUI():
 		
 		def change_selected_name(name):
 			exclude_mode[0] = False
-			exclude_mode[1]["bg"] = self.bg_colors[0]
+			exclude_mode[1]["bg"] = self.bg_colors[1]
 			delete_mode[0] = False
-			delete_mode[1]["bg"] = self.bg_colors[0]
+			delete_mode[1]["bg"] = self.bg_colors[1]
 			if self.selected_name_index > -1:
 				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
 			self.selected_name_index = name_list.index(name)
@@ -258,28 +250,28 @@ class SplitterGUI():
 		Label(delimiter_input, text="Delimiter:", fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT)
 		delimiter = StringVar(value="_")
 		delimiter.trace_add("write", lambda name, index, mode: update_file_labels())
-		delimiter_entry = Entry(delimiter_input, textvariable=delimiter, fg=self.fg_color, bg=self.bg_colors[2], width=4)
+		delimiter_entry = Entry(delimiter_input, textvariable=delimiter, fg=self.fg_color, bg=self.bg_colors[2], width=4, relief=FLAT)
 		delimiter_entry.pack(side=LEFT)
 		
-		exclude_toggle = Button(mode_input, text="Exclude Mode", command=toggle_exclude_mode, fg=self.fg_color, bg=self.bg_colors[0])
+		exclude_toggle = Button(mode_input, text="Exclude Mode", command=toggle_exclude_mode, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT)
 		exclude_toggle.pack(side=LEFT, padx=5)
-		delete_toggle = Button(mode_input, text="Clear Mode", command=toggle_delete_mode, fg=self.fg_color, bg=self.bg_colors[0])
+		delete_toggle = Button(mode_input, text="Clear Mode", command=toggle_delete_mode, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT)
 		delete_toggle.pack(side=LEFT, padx=5)
 		exclude_mode = [False, exclude_toggle]
 		delete_mode = [False, delete_toggle]
 		
-		name_entry = Entry(name_input, fg=self.fg_color, bg=self.bg_colors[2])
+		name_entry = Entry(name_input, fg=self.fg_color, bg=self.bg_colors[2], relief=FLAT)
 		name_entry.bind('<Return>', add_name)
 		name_entry.pack(side=LEFT)
-		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT, padx=5)
+		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5)
 		
 		folder_name = Label(folder_input, text="No directory selected.", fg=self.fg_color, bg=self.bg_colors[0], wraplength=180)
 		folder_name.pack()
-		Button(folder_input, text="Browse...",command=open_folder, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		Button(folder_input, text="Browse...",command=open_folder, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		error = Label(submit_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
-		Button(submit_input, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[0]).pack()
+		Button(submit_input, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		tiles = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
@@ -301,11 +293,11 @@ class SplitterGUI():
 					button.pack()
 					file_label.pack()
 				elif j == 0 and i > 0:
-					button = Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=get_resize()[1]//13)
+					button = Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=(6*get_resize()[1])//self.tile_display_size)
 					button.bind("<MouseWheel>", on_workspace_mousewheel)
 					button.pack()
 				elif i == 0 and j > 0:
-					button = Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=get_resize()[0]//8,height=1)
+					button = Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=(10*get_resize()[0])//self.tile_display_size,height=1)
 					button.bind("<MouseWheel>", on_workspace_mousewheel)
 					button.pack()
 			if i > 0:
