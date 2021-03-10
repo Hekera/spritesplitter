@@ -93,7 +93,11 @@ class SplitterGUI():
 		self.window.mainloop()
 	
 	def load(self):
-		pass
+		with open("config.json") as json_file:
+			data = json.load(json_file)
+			self.tile_width = data["tile_width"]
+			self.tile_height = data["tile_height"]
+			
 	
 
 	def editor(self):
@@ -228,7 +232,7 @@ class SplitterGUI():
 						info_row.append(sprite.__dict__())
 					sprite_info.append(info_row)
 				with open(path.join(self.folder,get_file_label(sprite) + ".json"), "w") as json_file:
-					json.dump({"tile_width": self.tile_width, "tile_height": self.tile_height, "image_width": self.image.width, "image_height": self.image.height, "sprite_info": sprite_info}, json_file, indent=4)
+					json.dump({"tile_width": self.tile_width, "tile_height": self.tile_height, "image_width": self.image.width, "image_height": self.image.height, "available_names": name_list, "sprite_info": sprite_info}, json_file, indent=4)
 				error["text"] = "Config successfully saved!"
 			else:
 				error["text"] = "No directory selected!"
