@@ -101,8 +101,11 @@ class SplitterGUI():
 		name_list = []
 		name_buttons = []
 		
-		def on_mousewheel(event):
+		def on_workspace_mousewheel(event):
 			wrapper_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+		
+		def on_names_mousewheel(event):
+			names_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 		
 		def get_resize():
 			multiplier = max(80//self.tile_width, 80//self.tile_height)
@@ -124,13 +127,16 @@ class SplitterGUI():
 			if self.selected_name_index > -1:
 				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
 		
-		def add_name():
+		def add_name(event=None):
 			new_name = name_entry.get()
 			if new_name != "" and not name_list.count(new_name):
-				button = Button(panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0], width=25, wraplength=175)
+				name_entry.delete(0, len(new_name))
+				button = Button(names_panel, text=new_name, command=lambda x=new_name: change_selected_name(x), fg=self.fg_color, bg=self.bg_colors[0], width=25, wraplength=175)
 				name_buttons.append(button)
 				button.pack(padx=5, pady=3)
 				name_list.append(new_name)
+				names_panel.update()
+				names_canvas.config(width=200, scrollregion=(0,0,names_panel.winfo_width() + 10,names_panel.winfo_height() + 10))
 		
 		def change_selected_name(name):
 			exclude_mode[0] = False
@@ -217,10 +223,11 @@ class SplitterGUI():
 		vbar.pack(side=RIGHT, fill=Y)
 		vbar.config(command=wrapper_canvas.yview)
 		wrapper_canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
-		wrapper_canvas.bind_all("<MouseWheel>", on_mousewheel)
+		wrapper_canvas.bind("<MouseWheel>", on_workspace_mousewheel)
 		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
 		workspace = Frame(wrapper_canvas, bg=self.bg_colors[1])
 		workspace.pack(side=LEFT, padx=5, pady=10)
+		workspace.bind("<MouseWheel>", on_workspace_mousewheel)
 		wrapper_canvas.create_window((10,10), window=workspace, anchor="nw",tags="workspace")
 		
 		#Label(panel, text="Options", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 20) ).pack()
@@ -231,7 +238,18 @@ class SplitterGUI():
 		Label(panel, text="Names", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 14)).pack(padx=5, pady=5)
 		name_input = Frame(panel, bg=self.bg_colors[0])
 		name_input.pack(padx=5)
-		name_panel = Frame(panel, bg=self.bg_colors[0])
+		names_frame = Frame(panel, bg=self.bg_colors[0])
+		names_frame.pack(expand=True, fill=Y, padx=10, pady=5)
+		names_canvas = Canvas(names_frame, width=200, borderwidth=0, bg=self.bg_colors[1], scrollregion=(0,0,0,0))
+		names_vbar = Scrollbar(names_frame, orient=VERTICAL)
+		names_vbar.pack(side=RIGHT, fill=Y)
+		names_vbar.config(command=names_canvas.yview)
+		names_canvas.config(yscrollcommand=names_vbar.set)
+		names_canvas.bind("<MouseWheel>", on_names_mousewheel)
+		names_canvas.pack(expand=True, fill=Y)
+		names_panel = Frame(names_canvas, bg=self.bg_colors[1])
+		names_panel.pack(side=LEFT, padx=5, pady=10)
+		names_canvas.create_window((100,5), window=names_panel, anchor="n",tags="names_panel")
 		submit_input = Frame(panel, bg=self.bg_colors[0])
 		submit_input.pack(side=BOTTOM, padx=5, pady=10)
 		folder_input = Frame(panel, bg=self.bg_colors[0])
@@ -251,6 +269,7 @@ class SplitterGUI():
 		delete_mode = [False, delete_toggle]
 		
 		name_entry = Entry(name_input, fg=self.fg_color, bg=self.bg_colors[2])
+		name_entry.bind('<Return>', add_name)
 		name_entry.pack(side=LEFT)
 		Button(name_input, text="Add Name",command=add_name, fg=self.fg_color, bg=self.bg_colors[0]).pack(side=LEFT, padx=5)
 		
@@ -269,18 +288,26 @@ class SplitterGUI():
 			for j in range(0, int(self.image.width/self.tile_width)+1):
 				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
 				frame.grid(row=i, column=j, sticky="n")
+				frame.bind("<MouseWheel>", on_workspace_mousewheel)
 				if j > 0 and i > 0:
 					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
 					image = self.image.crop(box=coords)
 					file_label = Label(frame, text=f"{i}-{j}", fg=self.fg_color, bg=self.bg_colors[1], wraplength=80)
+					file_label.bind("<MouseWheel>", on_workspace_mousewheel)
 					new_sprite = Sprite(image, f"{i}-{j}", file_label, ImageTk.PhotoImage(image.resize(get_resize(), NEAREST)))
 					row.append(new_sprite)
-					Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1]).pack()
+					button = Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1])
+					button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.pack()
 					file_label.pack()
 				elif j == 0 and i > 0:
-					Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=get_resize()[1]//13).pack()
+					button = Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=get_resize()[1]//13)
+					button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.pack()
 				elif i == 0 and j > 0:
-					Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=get_resize()[0]//8,height=1).pack()
+					button = Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=get_resize()[0]//8,height=1)
+					button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.pack()
 			if i > 0:
 				tiles.append(tuple(row))
 			
