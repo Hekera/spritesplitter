@@ -209,10 +209,8 @@ class SplitterGUI():
 				self.folder = folder
 				folder_name["text"] = folder
 	
-		def submit():
-			print("submitting...")
+		def export():
 			if hasattr(self, "folder"):
-				print("has folder!")
 				for row in self.sprites:
 					for sprite in row:
 						if not sprite.exclude:
@@ -222,13 +220,18 @@ class SplitterGUI():
 				error["text"] = "No directory selected!"
 		
 		def save():
-			sprite_info = []
-			for row in self.sprites:
-				info_row = []
-				for sprite in row:
-					info_row.append(sprite.__dict__)
-				sprite_info.append(info_row)
-			print(json.dumps({"tile_width": self.tile_width, "tile_height": self.tile_height, "image_width": self.image.width, "image_height": self.image.height, "sprite_info": sprite_info}))
+			if hasattr(self, "folder"):
+				sprite_info = []
+				for row in self.sprites:
+					info_row = []
+					for sprite in row:
+						info_row.append(sprite.__dict__())
+					sprite_info.append(info_row)
+				with open(path.join(self.folder,get_file_label(sprite) + ".json"), "w") as json_file:
+					json.dump({"tile_width": self.tile_width, "tile_height": self.tile_height, "image_width": self.image.width, "image_height": self.image.height, "sprite_info": sprite_info}, json_file, indent=4)
+				error["text"] = "Config successfully saved!"
+			else:
+				error["text"] = "No directory selected!"
 		
 		self.window.destroy()
 		self.window = Tk()
@@ -303,8 +306,8 @@ class SplitterGUI():
 		
 		error = Label(submit_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
-		Button(submit_input, text="Export Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
-		Button(submit_input, text="Save Configuration",command=save, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
+		Button(submit_input, text="Save Configuration",command=save, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
+		Button(submit_input, text="Export Sprites!",command=export, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
 		
 		tiles = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
