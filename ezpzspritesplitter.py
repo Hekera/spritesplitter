@@ -271,7 +271,7 @@ class SplitterGUI():
 		
 		error = Label(submit_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
-		Button(submit_input, text="Save Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
+		Button(submit_input, text="Export Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		tiles = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
