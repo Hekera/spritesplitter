@@ -1,7 +1,7 @@
 # Spritesplitter
 
-This script is designed to be an easy-to-use, GUI-based method of taking a large spritesheet and splitting it into many sprites of the same size. 
-It also allows for efficient naming of sprites, especially if they are grouped in rows/columns of similarly-named sprites.
+This python script is designed to be an easy-to-use, GUI-based method of taking a large spritesheet and splitting it into many sprites of the same size. 
+It also allows for efficient naming of sprites, especially if they are grouped in rows/columns of similarly-named sprites. Requires the [Pillow library](https://pillow.readthedocs.io/).
 
 # Instructions:
 Simply load your spritesheet up, enter the height and width of each tile, and press the button to get started.
