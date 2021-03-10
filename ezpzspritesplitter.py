@@ -140,7 +140,7 @@ class SplitterGUI():
 			self.selected_name_index = name_list.index(name)
 			name_buttons[self.selected_name_index]["bg"] = "red"
 	
-		def append_name(row_index, col_index):
+		def on_sprite_click(row_index, col_index):
 			sprite = self.sprites[row_index][col_index]
 			if exclude_mode[0]:
 				sprite.exclude = not sprite.exclude
@@ -152,13 +152,29 @@ class SplitterGUI():
 				sprite.names.append(name_list[self.selected_name_index])
 				update_file_label(sprite)
 		
-		def append_name_col(index):
-			for i in range(len(self.sprites)):
-				append_name(i, index)
+		def on_sprite_click_col(index):
+			if exclude_mode[0]:
+				exclude_all = True
+				for i in range(len(self.sprites)):
+					exclude_all = exclude_all and self.sprites[i][index].exclude
+				for i in range(len(self.sprites)):
+					self.sprites[i][index].exclude = not exclude_all
+					update_file_label(self.sprites[i][index])
+			else:
+				for i in range(len(self.sprites)):
+					on_sprite_click(i, index)
 	
-		def append_name_row(index):
-			for i in range(len(self.sprites[0])):
-				append_name(index, i)
+		def on_sprite_click_row(index):
+			if exclude_mode[0]:
+				exclude_all = True
+				for sprite in self.sprites[index]:
+					exclude_all = exclude_all and sprite.exclude
+				for sprite in self.sprites[index]:
+					sprite.exclude = not exclude_all
+					update_file_label(sprite)
+			else:
+				for i in range(len(self.sprites[0])):
+					on_sprite_click(index, i)
 		
 		def get_file_label(sprite):
 			if len(sprite.names) == 0:
@@ -288,16 +304,16 @@ class SplitterGUI():
 					file_label.bind("<MouseWheel>", on_workspace_mousewheel)
 					new_sprite = Sprite(image, f"{i}-{j}", file_label, ImageTk.PhotoImage(image.resize(get_resize(), NEAREST)))
 					row.append(new_sprite)
-					button = Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: append_name(x,y), relief=FLAT,bg=self.bg_colors[1])
+					button = Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: on_sprite_click(x,y), relief=FLAT,bg=self.bg_colors[1])
 					button.bind("<MouseWheel>", on_workspace_mousewheel)
 					button.pack()
 					file_label.pack()
 				elif j == 0 and i > 0:
-					button = Button(frame, text="",command=lambda x=i-1: append_name_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=(6*get_resize()[1])//self.tile_display_size)
+					button = Button(frame, text="",command=lambda x=i-1: on_sprite_click_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=(6*get_resize()[1])//self.tile_display_size)
 					button.bind("<MouseWheel>", on_workspace_mousewheel)
 					button.pack()
 				elif i == 0 and j > 0:
-					button = Button(frame, text="",command=lambda x=j-1: append_name_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=(10*get_resize()[0])//self.tile_display_size,height=1)
+					button = Button(frame, text="",command=lambda x=j-1: on_sprite_click_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=(10*get_resize()[0])//self.tile_display_size,height=1)
 					button.bind("<MouseWheel>", on_workspace_mousewheel)
 					button.pack()
 			if i > 0:
