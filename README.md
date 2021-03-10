@@ -1,4 +1,4 @@
-# spritesplitter
+# Spritesplitter
 
 This script is designed to be an easy-to-use, GUI-based method of taking a large spritesheet and splitting it into many sprites of the same size. 
 It also allows for efficient naming of sprites, especially if they are grouped in rows/columns of similarly-named sprites.
