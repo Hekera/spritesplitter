@@ -3,6 +3,7 @@ from tkinter import filedialog as fd
 from PIL import Image, ImageTk
 from PIL.Image import NEAREST as NEAREST
 from os import path
+import json
 
 class Sprite():
 	
@@ -13,6 +14,9 @@ class Sprite():
 		self.default = default
 		self.label = file_label
 		self.tk_image = tk_image
+	
+	def __dict__(self):
+		return {"id": self.default, "names": self.names, "exclude": self.exclude}
 
 class SplitterGUI():
 	bg_colors = ("#202124", "#35363a", "#4f5459")
@@ -87,7 +91,10 @@ class SplitterGUI():
 		Button(submit, text="Let's go!",command=verify, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		self.window.mainloop()
-
+	
+	def load(self):
+		pass
+	
 
 	def editor(self):
 		name_list = []
@@ -214,6 +221,15 @@ class SplitterGUI():
 			else:
 				error["text"] = "No directory selected!"
 		
+		def save():
+			sprite_info = []
+			for row in self.sprites:
+				info_row = []
+				for sprite in row:
+					info_row.append(sprite.__dict__)
+				sprite_info.append(info_row)
+			print(json.dumps({"tile_width": self.tile_width, "tile_height": self.tile_height, "image_width": self.image.width, "image_height": self.image.height, "sprite_info": sprite_info}))
+		
 		self.window.destroy()
 		self.window = Tk()
 		self.window.title("Editor")
@@ -288,6 +304,7 @@ class SplitterGUI():
 		error = Label(submit_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
 		Button(submit_input, text="Export Sprites!",command=submit, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
+		Button(submit_input, text="Save Configuration",command=save, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack()
 		
 		tiles = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
