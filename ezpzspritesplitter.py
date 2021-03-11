@@ -8,34 +8,15 @@ import json
 bg_colors = ("#202124", "#35363a", "#4f5459")
 fg_color = "white"
 select_color = "red"
+tile_display_size = 80
 
-class Sprite():
-	
-	def __init__(self, image, default, file_label, tk_image):
-		self.names = []
-		self.exclude = False
-		self.image = image
-		self.default = default
-		self.label = file_label
-		self.tk_image = tk_image
-	
-	def __dict__(self):
-		return {"id": self.default, "names": self.names, "exclude": self.exclude}
-
-class SplitterUtil():
-	
-	def __init__(self, image, tile_size, names_list=[]):
-		self.image = image
-		self.tile_width = tile_size[0]
-		self.tile_height = tile_size[1]
-		self.names_list = names_list
-
-class SpriteGUI(Frame):
-	def __init__(self, parent, image):
-		Frame.__init__(self, parent)
-		self.image = image
-		
-	
+#class SplitterUtil():
+#	
+#	def __init__(self, image, tile_size, names_list=[]):
+#		self.image = image
+#		self.tile_width = tile_size[0]
+#		self.tile_height = tile_size[1]
+#		self.names_list = names_list
 
 class VScrollable(Frame):
 	def __init__(self, parent):
@@ -52,7 +33,6 @@ class VScrollable(Frame):
 		
 		self.frame.bind("<Configure>", self.onFrameConfigure)
 		
-		
 		#self.canvas.bind("<MouseWheel>", on_workspace_mousewheel)
 		#self.pack(side=LEFT, expand=True, fill=BOTH)
 		#self.frame.pack(side=LEFT, padx=5, pady=10)
@@ -61,9 +41,37 @@ class VScrollable(Frame):
 	def onFrameConfigure(self, event):
 			self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 	
+	
+class SpriteGUI(Frame):
+	def __init__(self, parent, image, index, name_list=[], exclude=False):
+		Frame.__init__(self, parent)
+		
+		self.image = image
+		self.thumbnail = ImageTk.PhotoImage(self.image.resize(get_resize(), NEAREST))
+		self.names = name_list
+		self.default = f"{index[0]}-{index[1]}"
+		self.exclude = exclude
+		
+		self.button = Button(self, image=self.thumbnail, command=lambda x=i-1,y=j-1: on_sprite_click(x,y), relief=FLAT, bg=self.bg_colors[1])
+		self.label = Label(self, text=self.default, fg=self.fg_color, bg=self.bg_colors[1], wraplength=tile_display_size)
+		
+		button.pack()
+		label.pack()
+		
+		#file_label.bind("<MouseWheel>", on_workspace_mousewheel)
+		#button.bind("<MouseWheel>", on_workspace_mousewheel)
+	
+	def __dict__(self):
+		return {"id": self.default, "names": self.names, "exclude": self.exclude}
+	
 class Workspace(VScrollable):
-	def __init__(self, parent):
-		VScrollable.__init__(self, parent)
+	def __init__(self, parent, image):
+		VScrollable.__init__(self, parent, tile_size, names_list=[])
+		
+		self.image = image
+		self.tile_width = tile_size[0]
+		self.tile_height = tile_size[1]
+		self.names_list = names_list
 		
 		self.hbar = Scrollbar(self, orient=HORIZONTAL, command=self.canvas.xview)
 		self.canvas.config(xscrollcommand=hbar.set)
@@ -71,13 +79,38 @@ class Workspace(VScrollable):
 		
 		self.canvas.itemconfigure(self.window, (100,10), anchor="n")
 	
-	def populate(util):
-		util.tile_width 
-		util.tile_height
+	def populate(self):
+	
+		def get_coords(x_index, y_index):
+			return ((x_index-1)*self.tile_width, (y_index-1)*self.tile_height, x_index*self.tile_width, y_index*self.tile_height)
+		
+		grid = []
+		for i in range(0, int(self.image.height/self.tile_height)+1):
+			if i > 0:
+				row = []
+			for j in range(0, int(self.image.width/self.tile_width)+1):
+				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
+				frame.grid(row=i, column=j, sticky="n")
+				frame.bind("<MouseWheel>", on_workspace_mousewheel)
+				if j > 0 and i > 0:
+					sprite_gui = SpriteGUI(self, self.image.crop(box=get_coords(j, i)), (i,j))
+					row.append(sprite_gui)
+					
+				elif j == 0 and i > 0:
+					button = Button(frame, text="",command=lambda x=i-1: on_sprite_click_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=(6*get_resize()[1])//self.tile_display_size)
+					button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.pack()
+				elif i == 0 and j > 0:
+					button = Button(frame, text="",command=lambda x=j-1: on_sprite_click_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=(10*get_resize()[0])//self.tile_display_size,height=1)
+					button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.pack()
+			if i > 0:
+				tiles.append(tuple(row))
+			
+		self.sprites = tuple(tiles)
 
 class SplitterGUI():
 	
-	tile_display_size = 80
 	selected_name_index = -1
 
 	def __init__(self):
@@ -354,37 +387,7 @@ class SplitterGUI():
 		#Button(submit_input, text="Save Configuration",command=save, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
 		Button(submit_input, text="Export Sprites!",command=export, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
 		
-		tiles = []
-		for i in range(0, int(self.image.height/self.tile_height)+1):
-			if i > 0:
-				row = []
-			for j in range(0, int(self.image.width/self.tile_width)+1):
-				frame = Frame(workspace, bg=self.bg_colors[1], borderwidth=1, relief="solid")
-				frame.grid(row=i, column=j, sticky="n")
-				frame.bind("<MouseWheel>", on_workspace_mousewheel)
-				if j > 0 and i > 0:
-					coords = ((j-1)*self.tile_width, (i-1)*self.tile_height, j*self.tile_width, i*self.tile_height)
-					image = self.image.crop(box=coords)
-					file_label = Label(frame, text=f"{i}-{j}", fg=self.fg_color, bg=self.bg_colors[1], wraplength=80)
-					file_label.bind("<MouseWheel>", on_workspace_mousewheel)
-					new_sprite = Sprite(image, f"{i}-{j}", file_label, ImageTk.PhotoImage(image.resize(get_resize(), NEAREST)))
-					row.append(new_sprite)
-					button = Button(frame, image=new_sprite.tk_image, command=lambda x=i-1,y=j-1: on_sprite_click(x,y), relief=FLAT,bg=self.bg_colors[1])
-					button.bind("<MouseWheel>", on_workspace_mousewheel)
-					button.pack()
-					file_label.pack()
-				elif j == 0 and i > 0:
-					button = Button(frame, text="",command=lambda x=i-1: on_sprite_click_row(x), fg=self.fg_color, bg=self.bg_colors[0],width=2,height=(6*get_resize()[1])//self.tile_display_size)
-					button.bind("<MouseWheel>", on_workspace_mousewheel)
-					button.pack()
-				elif i == 0 and j > 0:
-					button = Button(frame, text="",command=lambda x=j-1: on_sprite_click_col(x), fg=self.fg_color, bg=self.bg_colors[0],width=(10*get_resize()[0])//self.tile_display_size,height=1)
-					button.bind("<MouseWheel>", on_workspace_mousewheel)
-					button.pack()
-			if i > 0:
-				tiles.append(tuple(row))
-			
-		self.sprites = tuple(tiles)
+		
 		
 		workspace.update()
 		wrapper_canvas.config(width=500,height=500, scrollregion=(0,0,workspace.winfo_width() + 10,workspace.winfo_height() + 10))
