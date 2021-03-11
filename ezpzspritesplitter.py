@@ -5,6 +5,10 @@ from PIL.Image import NEAREST as NEAREST
 from os import path
 import json
 
+bg_colors = ("#202124", "#35363a", "#4f5459")
+fg_color = "white"
+select_color = "red"
+
 class Sprite():
 	
 	def __init__(self, image, default, file_label, tk_image):
@@ -18,9 +22,61 @@ class Sprite():
 	def __dict__(self):
 		return {"id": self.default, "names": self.names, "exclude": self.exclude}
 
+class SplitterUtil():
+	
+	def __init__(self, image, tile_size, names_list=[]):
+		self.image = image
+		self.tile_width = tile_size[0]
+		self.tile_height = tile_size[1]
+		self.names_list = names_list
+
+class SpriteGUI(Frame):
+	def __init__(self, parent, image):
+		Frame.__init__(self, parent)
+		self.image = image
+		
+	
+
+class VScrollable(Frame):
+	def __init__(self, parent):
+		Frame.__init__(self, parent)
+		
+		self.canvas = Canvas(self, borderwidth=0, bg=self.bg_colors[1], scrollregion=(0,0,500,500))
+		self.frame = Frame(self.canvas, bg=self.bg_colors[1])
+		self.vbar = Scrollbar(self, orient=VERTICAL, command=self.canvas.yview)
+		self.canvas.config(yscrollcommand=vbar.set)
+		
+		self.vbar.pack(side=RIGHT, fill=Y)
+		self.canvas.pack(fill=Y, expand=True)
+		self.window = self.canvas.create_window((10,10), window=self.frame, anchor="nw", tags="self.frame")
+		
+		self.frame.bind("<Configure>", self.onFrameConfigure)
+		
+		
+		#self.canvas.bind("<MouseWheel>", on_workspace_mousewheel)
+		#self.pack(side=LEFT, expand=True, fill=BOTH)
+		#self.frame.pack(side=LEFT, padx=5, pady=10)
+		#self.frame.bind("<MouseWheel>", on_workspace_mousewheel)
+	
+	def onFrameConfigure(self, event):
+			self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+	
+class Workspace(VScrollable):
+	def __init__(self, parent):
+		VScrollable.__init__(self, parent)
+		
+		self.hbar = Scrollbar(self, orient=HORIZONTAL, command=self.canvas.xview)
+		self.canvas.config(xscrollcommand=hbar.set)
+		self.hbar.pack(side=BOTTOM, fill=X)
+		
+		self.canvas.itemconfigure(self.window, (100,10), anchor="n")
+	
+	def populate(util):
+		util.tile_width 
+		util.tile_height
+
 class SplitterGUI():
-	bg_colors = ("#202124", "#35363a", "#4f5459")
-	fg_color = "white"
+	
 	tile_display_size = 80
 	selected_name_index = -1
 
@@ -30,6 +86,11 @@ class SplitterGUI():
 	def landing(self):
 		def error(message):
 			Label(text=message).pack()
+		
+		#def load():
+		#	with open("config.json") as json_file:
+		#		data = json.load(json_file)
+		#		
 		
 		def verify():
 			if hasattr(self, "image"):
@@ -92,12 +153,7 @@ class SplitterGUI():
 		
 		self.window.mainloop()
 	
-	def load(self):
-		with open("config.json") as json_file:
-			data = json.load(json_file)
-			self.tile_width = data["tile_width"]
-			self.tile_height = data["tile_height"]
-			
+	
 	
 
 	def editor(self):
@@ -116,7 +172,7 @@ class SplitterGUI():
 		
 		def toggle_exclude_mode():
 			exclude_mode[0] = True
-			exclude_mode[1]["bg"] = "red"
+			exclude_mode[1]["bg"] = select_color
 			delete_mode[0] = False
 			delete_mode[1]["bg"] = self.bg_colors[1]
 			if self.selected_name_index > -1:
@@ -126,7 +182,7 @@ class SplitterGUI():
 			exclude_mode[0] = False
 			exclude_mode[1]["bg"] = self.bg_colors[1]
 			delete_mode[0] = True
-			delete_mode[1]["bg"] = "red"
+			delete_mode[1]["bg"] = select_color
 			if self.selected_name_index > -1:
 				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
 		
@@ -149,7 +205,7 @@ class SplitterGUI():
 			if self.selected_name_index > -1:
 				name_buttons[self.selected_name_index]["bg"] = self.bg_colors[0]
 			self.selected_name_index = name_list.index(name)
-			name_buttons[self.selected_name_index]["bg"] = "red"
+			name_buttons[self.selected_name_index]["bg"] = select_color
 	
 		def on_sprite_click(row_index, col_index):
 			sprite = self.sprites[row_index][col_index]
@@ -244,22 +300,7 @@ class SplitterGUI():
 		
 		panel = Frame(self.window, bg=self.bg_colors[0], width=300)
 		panel.pack(side=LEFT, fill=Y)
-		wrapper_frame = Frame(self.window, bg=self.bg_colors[0])
-		wrapper_frame.pack(side=LEFT, expand=True, fill=BOTH)
-		wrapper_canvas = Canvas(wrapper_frame, borderwidth=0, bg=self.bg_colors[1], scrollregion=(0,0,500,500))
-		hbar = Scrollbar(wrapper_frame, orient=HORIZONTAL)
-		hbar.pack(side=BOTTOM, fill=X)
-		hbar.config(command=wrapper_canvas.xview)
-		vbar = Scrollbar(wrapper_frame, orient=VERTICAL)
-		vbar.pack(side=RIGHT, fill=Y)
-		vbar.config(command=wrapper_canvas.yview)
-		wrapper_canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
-		wrapper_canvas.bind("<MouseWheel>", on_workspace_mousewheel)
-		wrapper_canvas.pack(side=LEFT, expand=True, fill=BOTH)
-		workspace = Frame(wrapper_canvas, bg=self.bg_colors[1])
-		workspace.pack(side=LEFT, padx=5, pady=10)
-		workspace.bind("<MouseWheel>", on_workspace_mousewheel)
-		wrapper_canvas.create_window((10,10), window=workspace, anchor="nw",tags="workspace")
+		
 		
 		#Label(panel, text="Options", fg=self.fg_color, bg=self.bg_colors[0], font=("TkDefaultFont", 20) ).pack()
 		delimiter_input = Frame(panel, bg=self.bg_colors[0])
@@ -310,7 +351,7 @@ class SplitterGUI():
 		
 		error = Label(submit_input, text="", fg=self.fg_color, bg=self.bg_colors[0])
 		error.pack()
-		Button(submit_input, text="Save Configuration",command=save, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
+		#Button(submit_input, text="Save Configuration",command=save, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
 		Button(submit_input, text="Export Sprites!",command=export, fg=self.fg_color, bg=self.bg_colors[1], relief=FLAT).pack(pady=5)
 		
 		tiles = []
