@@ -10,14 +10,6 @@ fg_color = "white"
 select_color = "red"
 tile_display_size = 80
 
-#class SplitterUtil():
-#	
-#	def __init__(self, image, tile_size, names_list=[]):
-#		self.image = image
-#		self.tile_width = tile_size[0]
-#		self.tile_height = tile_size[1]
-#		self.names_list = names_list
-
 def get_resize(width, height):
 	multiplier = max(tile_display_size//width, tile_display_size//height)
 	return (multiplier*width, multiplier*height)
@@ -37,19 +29,21 @@ class VScrollable(Frame):
 		self.window = self.canvas.create_window((100,10), window=self.frame, anchor="n", tags="self.frame")
 		self.frame.bind("<Configure>", self.onFrameConfigure)
 		
-		#self.canvas.bind("<MouseWheel>", on_workspace_mousewheel)
-		#self.pack(side=LEFT, expand=True, fill=BOTH)
-		#self.frame.pack(side=LEFT, padx=5, pady=10, fill=BOTH, expand=True)
-		#self.frame.bind("<MouseWheel>", on_workspace_mousewheel)
+		self.canvas.bind("<MouseWheel>", self.on_mousewheel)
+		self.frame.bind("<MouseWheel>", self.on_mousewheel)
 	
 	def onFrameConfigure(self, event):
 		self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+	
+	def on_mousewheel(self, event):
+		self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 	
 class BothScrollable(Frame):
 	def __init__(self, parent):
 		Frame.__init__(self, parent)
 		
 		self.canvas = Canvas(self, highlightthickness=0, bg=bg_colors[1], width=200, height=40, scrollregion=(0,0,500,500))
+		
 		self.frame = Frame(self.canvas, bg=bg_colors[1])
 		self.frame.top = self
 		self.vbar = Scrollbar(self, orient=VERTICAL, command=self.canvas.yview)
@@ -62,16 +56,16 @@ class BothScrollable(Frame):
 		self.window = self.canvas.create_window((10,10), window=self.frame, anchor="nw", tags="self.frame")
 		self.frame.bind("<Configure>", self.onFrameConfigure)
 		
-		#self.canvas.bind("<MouseWheel>", on_workspace_mousewheel)
-		#self.pack(side=LEFT, expand=True, fill=BOTH)
-		#self.frame.pack(side=LEFT, padx=5, pady=10, fill=BOTH, expand=True)
-		#self.frame.bind("<MouseWheel>", on_workspace_mousewheel)
+		self.canvas.bind("<MouseWheel>", self.on_mousewheel)
+		self.frame.bind("<MouseWheel>", self.on_mousewheel)
 	
 	def onFrameConfigure(self, event):
 		self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 	
+	def on_mousewheel(self, event):
+		self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 	
-class SpriteGUI(Frame):
+class SpriteElement(Frame):
 	def __init__(self, parent, image, index, name_list=None, exclude=False):
 		Frame.__init__(self, parent, bg=bg_colors[1], borderwidth=1, relief="solid")
 		self.sprite = image
@@ -80,22 +74,25 @@ class SpriteGUI(Frame):
 			self.names = []
 		else:
 			self.names = name_list
-		self.default = f"{index[0]}-{index[1]}"
+		self.index = index
 		self.exclude = exclude
 		self.workspace = parent.top
 		self.button = Button(self, image=self.thumbnail, command=lambda x=index[0],y=index[1]: self.workspace.on_sprite_click(x,y), relief=FLAT, bg=bg_colors[1], borderwidth=0)
-		self.label = Label(self, text=self.default, fg=fg_color, bg=bg_colors[1], wraplength=tile_display_size)
+		self.label = Label(self, text=self.get_default(), fg=fg_color, bg=bg_colors[1], wraplength=tile_display_size)
 		
 		self.button.pack()
 		self.label.pack()
 		
-		#file_label.bind("<MouseWheel>", on_workspace_mousewheel)
-		#button.bind("<MouseWheel>", on_workspace_mousewheel)
+		self.label.bind("<MouseWheel>", self.workspace.on_mousewheel)
+		self.button.bind("<MouseWheel>", self.workspace.on_mousewheel)
+	
+	def get_default(self):
+		return f"{self.index[0]}-{self.index[1]}"
 	
 	def __dict__(self):
-		return {"id": self.default, "exclude": self.exclude, "names": self.names}
+		return {"index": self.index, "exclude": self.exclude, "names": self.names}
 	
-	def update_label(self):
+	def update_label(self, event=None):
 		if self.exclude:
 			self.label["text"] = ""
 		else:
@@ -103,7 +100,7 @@ class SpriteGUI(Frame):
 	
 	def get_label(self):
 		if len(self.names) == 0:
-			return self.default
+			return self.get_default()
 		else: 
 			new_label = ""
 			for name in self.names:
@@ -131,45 +128,28 @@ class Workspace(BothScrollable):
 		def get_coords(x_index, y_index):
 			return ((x_index-1)*self.tile_width, (y_index-1)*self.tile_height, x_index*self.tile_width, y_index*self.tile_height)
 		
-		#grid = []
 		for i in range(0, int(self.image.height/self.tile_height)+1):
-			#if i > 0:
-			#	row = []
 			for j in range(0, int(self.image.width/self.tile_width)+1):
-				#frame = Frame(self.frame, bg=bg_colors[1], borderwidth=1, relief="solid")
-				#frame.grid(row=i, column=j, sticky="n")
-				#frame.bind("<MouseWheel>", on_workspace_mousewheel)
 				if j > 0 and i > 0:
-					SpriteGUI(self.frame, self.image.crop(box=get_coords(j, i)), (i,j)).grid(row=i, column=j, sticky="n")
-					#row.append(sprite_gui)
+					SpriteElement(self.frame, self.image.crop(box=get_coords(j, i)), (i,j)).grid(row=i, column=j, sticky="n")
 				elif j == 0 and i > 0:
 					button = Button(self.frame, text="",command=lambda x=i: self.on_click_row(x), fg=fg_color, bg=bg_colors[0],width=2,height=(6*get_resize(self.tile_width, self.tile_height)[1])//tile_display_size)
-					#button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.bind("<MouseWheel>", self.on_mousewheel)
 					button.grid(row=i, column=j, sticky="w")
 				elif i == 0 and j > 0:
 					button = Button(self.frame, text="",command=lambda x=j: self.on_click_col(x), fg=fg_color, bg=bg_colors[0],width=(10*get_resize(self.tile_width, self.tile_height)[0])//tile_display_size,height=1)
-					#button.bind("<MouseWheel>", on_workspace_mousewheel)
+					button.bind("<MouseWheel>", self.on_mousewheel)
 					button.grid(row=i, column=j, sticky="n")
-			#if i > 0:
-			#	tiles.append(tuple(row))
-			
-		#self.sprites = tuple(tiles)
-	
-	def filter_sprite_elements(self, list):
-		for i in reversed(range(len(list))):
-			if type(list[i]) == Button:
-				list.pop(i)
-		return list
-	
+		
 	def get_sprite_elements(self, row=None, col=None):
 		if col is None and row is None:
-			return self.filter_sprite_elements(self.frame.grid_slaves())
+			return [x for x in self.frame.grid_slaves() if type(x) == SpriteElement]
 		if col is not None and row is not None:
 			return self.frame.grid_slaves(row=row, column=col)[0]
 		if row is not None:
-			return self.filter_sprite_elements(self.frame.grid_slaves(row=row))
+			return [x for x in self.frame.grid_slaves(row=row) if type(x) == SpriteElement]
 		if col is not None:
-			return self.filter_sprite_elements(self.frame.grid_slaves(column=col))
+			return [x for x in self.frame.grid_slaves(column=col) if type(x) == SpriteElement]
 	
 	def on_sprite_click(self, row_index, col_index):
 		sprite = self.get_sprite_elements(row=row_index, col=col_index)
@@ -193,8 +173,8 @@ class Workspace(BothScrollable):
 				sprite.exclude = not exclude_all
 				sprite.update_label()
 		else:
-			for i in range(1, len(sprites)):
-				self.on_sprite_click(i, index)
+			for i in range(0, len(sprites)):
+				self.on_sprite_click(i+1, index)
 
 	def on_click_row(self, index):
 		sprites = self.get_sprite_elements(row=index)
@@ -206,8 +186,8 @@ class Workspace(BothScrollable):
 				sprite.exclude = not exclude_all
 				sprite.update_label()
 		else:
-			for i in range(1, len(sprites)):
-				self.on_sprite_click(index, i)
+			for i in range(0, len(sprites)):
+				self.on_sprite_click(index, i+1)
 	
 	def update_file_labels(self):
 		sprites = self.get_sprite_elements()
@@ -255,10 +235,8 @@ class Panel(Frame):
 		
 		self.lbl_submit = Label(self.frm_submit, text="", fg=fg_color, bg=bg_colors[0])
 		self.lbl_submit.pack()
-		#Button(self.frm_save, text="Save Configuration",command=save, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
+		Button(self.frm_submit, text="Save Configuration",command=parent.save_config, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
 		Button(self.frm_submit, text="Export Sprites",command=parent.export, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
-	
-	
 
 class Editor(Frame):
 	def __init__(self, parent, file, tile_size, names=[]):
@@ -283,7 +261,7 @@ class Editor(Frame):
 	def select_name(self, name):
 		self.reset_selection()
 		self.workspace.selected_name_index = self.workspace.name_list.index(name)
-		self.panel.name_list.frame.pack_slaves()[self.workspace.selected_name_index]["bg"] = select_color #fix so proper button is selected
+		self.panel.name_list.frame.pack_slaves()[self.workspace.selected_name_index]["bg"] = select_color
 	
 	def reset_selection(self):
 		self.workspace.exclude_mode = False
@@ -297,10 +275,11 @@ class Editor(Frame):
 		new_name = self.panel.ent_name.get()
 		if new_name != "" and not self.workspace.name_list.count(new_name):
 			self.panel.ent_name.delete(0, len(new_name))
-			Button(self.panel.name_list.frame, text=new_name, command=lambda x=new_name: self.select_name(x), fg=fg_color, bg=bg_colors[0], width=25, wraplength=175, relief=FLAT).pack(padx=5, pady=3)
+			button = Button(self.panel.name_list.frame, text=new_name, command=lambda x=new_name: self.select_name(x), fg=fg_color, bg=bg_colors[0], width=25, wraplength=175, relief=FLAT)
+			button
+			button.bind("<MouseWheel>", self.panel.name_list.on_mousewheel)
+			button.pack(padx=5, pady=3)
 			self.workspace.name_list.append(new_name)
-			#self.panel.name_list.update()
-			#self.panel.name_list.canvas.config(width=200, scrollregion=(0,0,self.panel.name_list.winfo_width() + 10,self.panel.name_list.winfo_height() + 10))
 	
 	def open_folder(self):
 		folder = fd.askdirectory(mustexist=True)
@@ -314,6 +293,17 @@ class Editor(Frame):
 				if not sprite_element.exclude:
 					sprite_element.sprite.save(path.join(self.folder, sprite_element.get_label() + ".png"))
 					self.panel.lbl_submit["text"] = "Sprites successfully saved!"
+		else:
+			self.panel.lbl_submit["text"] = "No directory selected!"
+	
+	def save_config(self):
+		if hasattr(self, "folder"):
+			sprite_info = []
+			for sprite_element in self.workspace.get_sprite_elements():
+				sprite_info.append(sprite_element.__dict__())
+			with open(path.join(self.folder,"config.json"), "w") as json_file:
+				json.dump({"tile_size": (self.workspace.tile_width, self.workspace.tile_height), "image_size": (self.workspace.image.width, self.workspace.image.height), "available_names": self.workspace.name_list, "sprite_info": sprite_info}, json_file, indent=4)
+			self.panel.lbl_submit["text"] = "Config successfully saved!"
 		else:
 			self.panel.lbl_submit["text"] = "No directory selected!"
 
@@ -395,32 +385,8 @@ class Splitter():
 		Button(submit, text="Skip",command=skip, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
 		self.window.mainloop()
-	
-	
-	
 
 	def editor(self):
-		
-		#def on_workspace_mousewheel(event):
-		#	wrapper_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-		
-		#def on_names_mousewheel(event):
-		#	names_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-		
-		#def save():
-		#	if hasattr(self, "folder"):
-		#		sprite_info = []
-		#		for row in self.sprites:
-		#			info_row = []
-		#			for sprite in row:
-		#				info_row.append(sprite.__dict__())
-		#			sprite_info.append(info_row)
-		#		with open(path.join(self.folder,get_file_label(sprite) + ".json"), "w") as json_file:
-		#			json.dump({"tile_width": self.tile_width, "tile_height": self.tile_height, "image_width": self.image.width, "image_height": self.image.height, "available_names": name_list, "sprite_info": sprite_info}, json_file, indent=4)
-		#		error["text"] = "Config successfully saved!"
-		#	else:
-		#		error["text"] = "No directory selected!"
-		
 		self.window.destroy()
 		self.window = Tk()
 		self.window.title("Editor")
@@ -428,13 +394,6 @@ class Splitter():
 		
 		self.editor = Editor(self.window, self.image, (self.tile_width, self.tile_height))
 		self.editor.pack(side=LEFT, fill=BOTH, expand=True)
-		
-		
-		
-		
-		
-		#workspace.update()
-		#wrapper_canvas.config(width=500,height=500, scrollregion=(0,0,workspace.winfo_width() + 10,workspace.winfo_height() + 10))
 		
 		self.window.mainloop()
 
