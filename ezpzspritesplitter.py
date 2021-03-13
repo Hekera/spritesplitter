@@ -14,6 +14,32 @@ def get_resize(width, height):
 	multiplier = max(tile_display_size//width, tile_display_size//height)
 	return (multiplier*width, multiplier*height)
 
+class FileRequester(Frame):
+	def __init__(self, parent, file_type):
+		Frame.__init__(self, parent, bg=bg_colors[0])
+		self.lbl_file = Label(self, text="No file selected.", fg=fg_color, bg=bg_colors[0])
+		self.lbl_file.pack()
+		self.lbl_size = Label(self, text="", fg=fg_color, bg=bg_colors[0])
+		self.lbl_size.pack()
+		self.file_type = file_type
+		Button(self, text="Browse...",command=self.open_file, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
+	
+	def open_file(self):
+		try:
+			self.file = fd.askopenfilename(filetypes=[self.file_type])
+			self.lbl_file["text"] = self.file[self.file.rindex("/") + 1:]
+		except AttributeError:
+			pass
+
+class ImageRequester(FileRequester):
+	def __init__(self, parent):
+		FileRequester.__init__(self, parent, ("PNG File",'.png'))
+	
+	def open_file(self):
+		FileRequester.open_file(self)
+		self.file = Image.open(self.file)
+		self.lbl_size["text"] = f"{self.file.width} x {self.file.height}"
+
 class VScrollable(Frame):
 	def __init__(self, parent):
 		Frame.__init__(self, parent)
@@ -83,6 +109,7 @@ class SpriteElement(Frame):
 		self.button.pack()
 		self.label.pack()
 		
+		self.bind("<MouseWheel>", self.workspace.on_mousewheel)
 		self.label.bind("<MouseWheel>", self.workspace.on_mousewheel)
 		self.button.bind("<MouseWheel>", self.workspace.on_mousewheel)
 	
@@ -107,9 +134,8 @@ class SpriteElement(Frame):
 				new_label += name + self.workspace.delimiter.get()
 			return new_label[:new_label.rindex(self.workspace.delimiter.get())]
 	
-	
 class Workspace(BothScrollable):
-	def __init__(self, parent, image, tile_size, names):
+	def __init__(self, parent, image, tile_size):
 		BothScrollable.__init__(self, parent)
 		
 		self.image = image
@@ -118,8 +144,10 @@ class Workspace(BothScrollable):
 		self.exclude_mode = False
 		self.delete_mode = False
 		self.parent = parent
-		self.name_list = names
+		self.name_list = []
 		self.selected_name_index = -1
+		self.delimiter = StringVar(value="_")
+		self.delimiter.trace_add("write", lambda name, index, mode: self.update_file_labels())
 		
 		self.populate()
 	
@@ -195,7 +223,7 @@ class Workspace(BothScrollable):
 			sprite.update_label(self.delimiter.get())
 
 class Panel(Frame):
-	def __init__(self, parent):
+	def __init__(self, parent, delimiter_string):
 		Frame.__init__(self, parent, bg=bg_colors[0], width=300)
 		self.editor = parent
 		
@@ -214,9 +242,7 @@ class Panel(Frame):
 		self.frm_folder.pack(side=BOTTOM, padx=5)
 		
 		Label(self.frm_delimiter, text="Delimiter:", fg=fg_color, bg=bg_colors[0]).pack(side=LEFT)
-		self.delimiter = StringVar(value="_")
-		self.delimiter.trace_add("write", lambda name, index, mode: self.editor.workspace.update_file_labels())
-		self.ent_delimiter = Entry(self.frm_delimiter, textvariable=self.delimiter, fg=fg_color, bg=bg_colors[2], width=4, relief=FLAT)
+		self.ent_delimiter = Entry(self.frm_delimiter, textvariable=delimiter_string, fg=fg_color, bg=bg_colors[2], width=4, relief=FLAT)
 		self.ent_delimiter.pack(side=LEFT)
 		
 		self.btn_exclude_mode = Button(self.frm_mode, text="Exclude Mode", command=parent.set_exclude_mode, fg=fg_color, bg=bg_colors[1], relief=FLAT)
@@ -229,24 +255,24 @@ class Panel(Frame):
 		self.ent_name.pack(side=LEFT)
 		Button(self.frm_name, text="Add Name",command=parent.add_name, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5)
 		
-		self.lbl_folder = Label(self.frm_folder, text="No directory selected.", fg=fg_color, bg=bg_colors[0], wraplength=180)
+		self.lbl_folder = Label(self.frm_folder, text="No directory selected.", fg=fg_color, bg=bg_colors[0], wraplength=200)
 		self.lbl_folder.pack()
 		Button(self.frm_folder, text="Browse...",command=parent.open_folder, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
-		self.lbl_submit = Label(self.frm_submit, text="", fg=fg_color, bg=bg_colors[0])
+		self.lbl_submit = Label(self.frm_submit, text="", fg=fg_color, bg=bg_colors[0], wraplength=200)
 		self.lbl_submit.pack()
 		Button(self.frm_submit, text="Save Configuration",command=parent.save_config, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
 		Button(self.frm_submit, text="Export Sprites",command=parent.export, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
 
 class Editor(Frame):
-	def __init__(self, parent, file, tile_size, names=[]):
+	def __init__(self, parent, file, tile_size, data=None):
 		Frame.__init__(self, parent)
-		self.panel = Panel(self)
+		self.workspace = Workspace(self, file, tile_size)
+		self.panel = Panel(self, self.workspace.delimiter)
 		self.panel.pack(side=LEFT, fill=Y)
-		self.workspace = Workspace(self, file, tile_size, names)
 		self.workspace.pack(side=LEFT, fill=BOTH, expand=True)
-		
-		self.workspace.delimiter = self.panel.delimiter
+		if data is not None:
+			self.load_config(data)
 	
 	def set_delete_mode(self):
 		self.reset_selection()
@@ -303,21 +329,42 @@ class Editor(Frame):
 				sprite_info.append(sprite_element.__dict__())
 			with open(path.join(self.folder,"config.json"), "w") as json_file:
 				json.dump({"tile_size": (self.workspace.tile_width, self.workspace.tile_height), "image_size": (self.workspace.image.width, self.workspace.image.height), "available_names": self.workspace.name_list, "sprite_info": sprite_info}, json_file, indent=4)
-			self.panel.lbl_submit["text"] = "Config successfully saved!"
+			self.panel.lbl_submit["text"] = "Config successfully saved as config.json!"
 		else:
 			self.panel.lbl_submit["text"] = "No directory selected!"
+	
+	def load_config(self, data):
+		for name in data["available_names"]:
+			self.panel.ent_name.insert(0, name)
+			self.add_name()
+		list = self.workspace.get_sprite_elements()
+		for info in data["sprite_info"]:
+			for sprite_element in list:
+				if sprite_element.index == tuple(info["index"]):
+					sprite_element.names = info["names"]
+					sprite_element.exclude = info["exclude"]
+					list.remove(sprite_element)
+					break
+		self.workspace.update_file_labels()
 
 class Splitter():
 
 	def __init__(self):
 		self.landing()
-
+	
 	def landing(self):
+		self.window = Tk()
+		self.window.title("Ez Pz Sprite Splitter")
+		self.window["bg"] = bg_colors[0]
 		
-		#def load():
-		#	with open("config.json") as json_file:
-		#		data = json.load(json_file)
-		#	
+		Label(self.window, text="Welcome to the Ez Pz Sprite Splitter!", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
+		Label(self.window, text="Would you like to load a previous configuration or start from scratch?", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
+		Button(self.window, text="Start New",command=self.new, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
+		Button(self.window, text="Load from File",command=self.load, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
+		
+		self.window.mainloop()
+
+	def new(self):
 		def skip():
 			self.tile_width = 16
 			self.tile_height = 16
@@ -325,14 +372,14 @@ class Splitter():
 			self.editor()
 		
 		def verify():
-			if hasattr(self, "image"):
+			if hasattr(image_input, "file"):
 				try:
+					self.image = image_input.file
 					input_width = int(width_entry.get())
 					input_height = int(height_entry.get())
 					if self.image.width % input_width == 0 and self.image.height % input_height == 0:
-						self.tile_width = input_width
-						self.tile_height = input_height
-						self.editor()
+						self.tile_size = (input_width, input_height)
+						self.edit()
 					else:
 						error["text"] = "Image size must be divisible by tile size!"
 				except ValueError:
@@ -340,37 +387,24 @@ class Splitter():
 			else:
 				error["text"] = "You must choose an image file!"
 		
-		def open_file():
-			try:
-				self.image = Image.open(fd.askopenfilename(filetypes=[("Image File",'.png')]))
-				file_name["text"] = self.image.filename[self.image.filename.rindex("/") + 1:]
-				file_dim ["text"] = f"{self.image.width} x {self.image.height}"
-			except AttributeError:
-				pass
 		
+		self.window.destroy()
 		self.window = Tk()
-		self.window.title("Ez Pz Sprite Splitter")
+		self.window.title("Start New")
 		self.window["bg"] = bg_colors[0]
 		
-		Label(self.window, text="Welcome to the Ez Pz Sprite Splitter!", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
-		Label(self.window, text="Choose an image and input the dimensions of your tiles.", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
+		Label(self.window, text="Choose a png image and input the dimensions of your tiles.", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
 		inputs = Frame(self.window, bg=bg_colors[0])
 		inputs.pack()
 		submit = Frame(self.window, padx=5, pady=10, bg=bg_colors[0])
 		submit.pack()
 		
-		file_input = Frame(inputs, bg=bg_colors[0])
-		file_input.grid(row=1, column=0, padx=25, pady=5)
+		image_input = ImageRequester(inputs)
+		image_input.grid(row=1, column=0, padx=25, pady=5)
 		dimension_label = Frame(inputs, bg=bg_colors[0])
 		dimension_label.grid(row=1, column=1, pady=5)
 		dimension_input = Frame(inputs, bg=bg_colors[0])
 		dimension_input.grid(row=1, column=2, pady=5)
-		
-		file_name = Label(file_input, text="No file selected.", fg=fg_color, bg=bg_colors[0])
-		file_name.pack()
-		file_dim = Label(file_input, text="", fg=fg_color, bg=bg_colors[0])
-		file_dim.pack()
-		Button(file_input, text="Browse...",command=open_file, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
 		Label(dimension_label, text="Tile Width:", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
 		width_entry = Entry(dimension_input, width=5, fg=fg_color, bg=bg_colors[2], relief=FLAT)
@@ -385,14 +419,77 @@ class Splitter():
 		Button(submit, text="Skip",command=skip, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
 		self.window.mainloop()
+	
+	def load(self):
+		def verify():
+			if hasattr(image_input, "file"):
+				if hasattr(config_input, "file"):
+					self.image = image_input.file
+					with open(config_input.file) as json_file:
+						self.data = json.load(json_file)
+						self.tile_size = self.data["tile_size"]
+						if self.image.width % self.tile_size[0] == 0 and self.image.height % self.tile_size[1] == 0:
+							if (self.data["image_size"][0] != self.image.width or self.data["image_size"][1] != self.image.height):
+								self.warn = Tk()
+								self.warn.title("Warning")
+								self.warn["bg"] = bg_colors[0]
+								
+								Label(self.warn, text="The size of the selected image and the size of the original image the config was saved from do not match. Are you sure you want to proceed?", wraplength=300, fg=fg_color, bg=bg_colors[0]).pack(pady=5)
+								frm_buttons = Frame(self.warn, bg=bg_colors[0])
+								frm_buttons.pack(padx=5)
+								Button(frm_buttons, text="Yes",command= lambda x=True: answer(x), fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5, pady=5)
+								Button(frm_buttons, text="No",command=lambda x=False: answer(x), fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5, pady=5)
+								
+								self.warn.mainloop()
+							else:
+								answer(True)
+						else:
+							error["text"] = f"Image size must be divisible by tile size ({input_size[0]}x{input_size[1]})!"
+				else:
+					error["text"] = "You must choose a config file!"
+			else:
+				error["text"] = "You must choose an image file!"
+		
+		def answer(response):
+			if hasattr(self, "warn"):
+				self.warn.destroy()
+			if response:
+				self.edit()
+		
+		self.window.destroy()
+		self.window = Tk()
+		self.window.title("Load from Config")
+		self.window["bg"] = bg_colors[0]
+		
+		Label(self.window, text="Choose a png image and a json configuration file.", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
+		inputs = Frame(self.window, bg=bg_colors[0])
+		inputs.pack()
+		submit = Frame(self.window, padx=5, pady=10, bg=bg_colors[0])
+		submit.pack()
+		
+		Label(inputs, text="Image", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=0, padx=25, pady=5)
+		image_input = ImageRequester(inputs)
+		image_input.grid(row=1, column=0, padx=25, pady=5)
+		Label(inputs, text="Config", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=1, padx=25, pady=5)
+		config_input = FileRequester(inputs, ("JSON File",'.json'))
+		config_input.grid(row=1, column=1, padx=25, pady=5)
+		
+		error = Label(submit, text="", fg=fg_color, bg=bg_colors[0])
+		error.pack()
+		Button(submit, text="Let's go!",command=verify, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
+		
+		self.window.mainloop()
 
-	def editor(self):
+	def edit(self):
 		self.window.destroy()
 		self.window = Tk()
 		self.window.title("Editor")
 		self.window.config(bg=bg_colors[0])
 		
-		self.editor = Editor(self.window, self.image, (self.tile_width, self.tile_height))
+		if hasattr(self, "data"):
+			self.editor = Editor(self.window, self.image, self.tile_size, self.data)
+		else:
+			self.editor = Editor(self.window, self.image, self.tile_size)
 		self.editor.pack(side=LEFT, fill=BOTH, expand=True)
 		
 		self.window.mainloop()
