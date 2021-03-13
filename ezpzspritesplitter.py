@@ -24,16 +24,16 @@ def get_resize(width, height):
 
 class VScrollable(Frame):
 	def __init__(self, parent):
-		Frame.__init__(self, parent, borderwidth=0)
+		Frame.__init__(self, parent)
 		
-		self.canvas = Canvas(self, borderwidth=0, bg=bg_colors[1], width=200, height=40, scrollregion=(0,0,500,500))
+		self.canvas = Canvas(self, highlightthickness=0, bg=bg_colors[1], width=200, height=40, scrollregion=(0,0,500,500))
 		self.frame = Frame(self.canvas, bg=bg_colors[1])
 		self.frame.top = self
 		self.vbar = Scrollbar(self, orient=VERTICAL, command=self.canvas.yview)
 		self.canvas.config(yscrollcommand=self.vbar.set)
 		
 		self.vbar.pack(side=RIGHT, fill=Y)
-		self.canvas.pack(fill=BOTH, expand=True)
+		self.canvas.pack(fill=Y, expand=True)
 		self.window = self.canvas.create_window((100,10), window=self.frame, anchor="n", tags="self.frame")
 		self.frame.bind("<Configure>", self.onFrameConfigure)
 		
@@ -47,9 +47,9 @@ class VScrollable(Frame):
 	
 class BothScrollable(Frame):
 	def __init__(self, parent):
-		Frame.__init__(self, parent, borderwidth=0)
+		Frame.__init__(self, parent)
 		
-		self.canvas = Canvas(self, borderwidth=0, bg=bg_colors[1], width=200, height=40, scrollregion=(0,0,500,500))
+		self.canvas = Canvas(self, highlightthickness=0, bg=bg_colors[1], width=200, height=40, scrollregion=(0,0,500,500))
 		self.frame = Frame(self.canvas, bg=bg_colors[1])
 		self.frame.top = self
 		self.vbar = Scrollbar(self, orient=VERTICAL, command=self.canvas.yview)
@@ -82,7 +82,8 @@ class SpriteGUI(Frame):
 			self.names = name_list
 		self.default = f"{index[0]}-{index[1]}"
 		self.exclude = exclude
-		self.button = Button(self, image=self.thumbnail, command=lambda x=index[0],y=index[1]: parent.top.on_sprite_click(x,y), relief=FLAT, bg=bg_colors[1], borderwidth=0)
+		self.workspace = parent.top
+		self.button = Button(self, image=self.thumbnail, command=lambda x=index[0],y=index[1]: self.workspace.on_sprite_click(x,y), relief=FLAT, bg=bg_colors[1], borderwidth=0)
 		self.label = Label(self, text=self.default, fg=fg_color, bg=bg_colors[1], wraplength=tile_display_size)
 		
 		self.button.pack()
@@ -94,20 +95,20 @@ class SpriteGUI(Frame):
 	def __dict__(self):
 		return {"id": self.default, "exclude": self.exclude, "names": self.names}
 	
-	def update_label(self, delimiter):
+	def update_label(self):
 		if self.exclude:
 			self.label["text"] = ""
 		else:
-			self.label["text"] = self.get_label(delimiter)
+			self.label["text"] = self.get_label()
 	
-	def get_label(self, delimiter):
+	def get_label(self):
 		if len(self.names) == 0:
 			return self.default
 		else: 
 			new_label = ""
 			for name in self.names:
-				new_label += name + delimiter
-			return new_label[:new_label.rindex(delimiter)]
+				new_label += name + self.workspace.delimiter.get()
+			return new_label[:new_label.rindex(self.workspace.delimiter.get())]
 	
 	
 class Workspace(BothScrollable):
@@ -122,11 +123,6 @@ class Workspace(BothScrollable):
 		self.parent = parent
 		self.name_list = names
 		self.selected_name_index = -1
-		
-		
-		
-		#self.canvas.coords(self.window, (100,10))
-		self.canvas.itemconfigure(self.window, anchor="n")
 		
 		self.populate()
 	
@@ -159,53 +155,64 @@ class Workspace(BothScrollable):
 			
 		#self.sprites = tuple(tiles)
 	
+	def filter_sprite_elements(self, list):
+		for i in reversed(range(len(list))):
+			if type(list[i]) == Button:
+				list.pop(i)
+		return list
+	
+	def get_sprite_elements(self, row=None, col=None):
+		if col is None and row is None:
+			return self.filter_sprite_elements(self.frame.grid_slaves())
+		if col is not None and row is not None:
+			return self.frame.grid_slaves(row=row, column=col)[0]
+		if row is not None:
+			return self.filter_sprite_elements(self.frame.grid_slaves(row=row))
+		if col is not None:
+			return self.filter_sprite_elements(self.frame.grid_slaves(column=col))
+	
 	def on_sprite_click(self, row_index, col_index):
-		sprite = self.frame.grid_slaves(row=row_index, column=col_index)[0]
+		sprite = self.get_sprite_elements(row=row_index, col=col_index)
 		if self.exclude_mode:
 			sprite.exclude = not sprite.exclude
-			sprite.update_label(self.delimiter.get())
+			sprite.update_label()
 		elif self.delete_mode:
 			sprite.names = []
-			sprite.update_label(self.delimiter.get())
+			sprite.update_label()
 		elif self.selected_name_index > -1:
 			sprite.names.append(self.name_list[self.selected_name_index])
-			sprite.update_label(self.delimiter.get())
+			sprite.update_label()
 	
 	def on_click_col(self, index):
-		sprites = self.frame.grid_slaves(column=index)
+		sprites = self.get_sprite_elements(col=index)
 		if self.exclude_mode:
 			exclude_all = True
 			for sprite in sprites:
-				if type(sprite) == SpriteGUI:
-					exclude_all = exclude_all and sprite.exclude
+				exclude_all = exclude_all and sprite.exclude
 			for sprite in sprites:
-				if type(sprite) == SpriteGUI:
-					sprite.exclude = not exclude_all
-					sprite.update_label(self.delimiter.get())
+				sprite.exclude = not exclude_all
+				sprite.update_label()
 		else:
 			for i in range(1, len(sprites)):
 				self.on_sprite_click(i, index)
 
 	def on_click_row(self, index):
-		sprites = self.frame.grid_slaves(row=index)
+		sprites = self.get_sprite_elements(row=index)
 		if self.exclude_mode:
 			exclude_all = True
 			for sprite in sprites:
-				if type(sprite) == SpriteGUI:
-					exclude_all = exclude_all and sprite.exclude
+				exclude_all = exclude_all and sprite.exclude
 			for sprite in sprites:
-				if type(sprite) == SpriteGUI:
-					sprite.exclude = not exclude_all
-					sprite.update_label(self.delimiter.get())
+				sprite.exclude = not exclude_all
+				sprite.update_label()
 		else:
 			for i in range(1, len(sprites)):
 				self.on_sprite_click(index, i)
 	
 	def update_file_labels(self):
-		sprites = self.frame.grid_slaves()
+		sprites = self.get_sprite_elements()
 		for sprite in sprites:
-			if type(sprite) == SpriteGUI:
-				sprite.update_label(self.delimiter.get())
+			sprite.update_label(self.delimiter.get())
 
 class Panel(Frame):
 	def __init__(self, parent):
@@ -220,7 +227,7 @@ class Panel(Frame):
 		self.frm_name = Frame(self, bg=bg_colors[0])
 		self.frm_name.pack(padx=5)
 		self.name_list = VScrollable(self)
-		self.name_list.pack(padx=5, pady=5, expand=True, fill=Y)
+		self.name_list.pack(padx=10, pady=10, expand=True, fill=Y)
 		self.frm_submit = Frame(self, bg=bg_colors[0])
 		self.frm_submit.pack(side=BOTTOM, padx=5, pady=10)
 		self.frm_folder = Frame(self, bg=bg_colors[0])
@@ -257,7 +264,7 @@ class Editor(Frame):
 	def __init__(self, parent, file, tile_size, names=[]):
 		Frame.__init__(self, parent)
 		self.panel = Panel(self)
-		self.panel.pack(side=LEFT, fill=Y, expand=True)
+		self.panel.pack(side=LEFT, fill=Y)
 		self.workspace = Workspace(self, file, tile_size, names)
 		self.workspace.pack(side=LEFT, fill=BOTH, expand=True)
 		
@@ -295,17 +302,17 @@ class Editor(Frame):
 			#self.panel.name_list.update()
 			#self.panel.name_list.canvas.config(width=200, scrollregion=(0,0,self.panel.name_list.winfo_width() + 10,self.panel.name_list.winfo_height() + 10))
 	
-	def open_folder():
+	def open_folder(self):
 		folder = fd.askdirectory(mustexist=True)
 		if len(folder) > 0:
 			self.folder = folder
 			self.panel.lbl_folder["text"] = folder
 	
-	def export():
+	def export(self):
 		if hasattr(self, "folder"):
-			for sprite in self.frame.grid_slaves():
-				if not sprite.exclude:
-					sprite.image.save(path.join(self.folder, get_label(sprite) + ".png"))
+			for sprite_element in self.workspace.get_sprite_elements():
+				if not sprite_element.exclude:
+					sprite_element.sprite.save(path.join(self.folder, sprite_element.get_label() + ".png"))
 					self.panel.lbl_submit["text"] = "Sprites successfully saved!"
 		else:
 			self.panel.lbl_submit["text"] = "No directory selected!"
@@ -420,7 +427,7 @@ class Splitter():
 		self.window.config(bg=bg_colors[0])
 		
 		self.editor = Editor(self.window, self.image, (self.tile_width, self.tile_height))
-		self.editor.pack(side=LEFT, fill="both")
+		self.editor.pack(side=LEFT, fill=BOTH, expand=True)
 		
 		
 		
