@@ -22,10 +22,10 @@ class VScrollable(Frame):
 	def __init__(self, parent):
 		Frame.__init__(self, parent)
 		
-		self.canvas = Canvas(self, borderwidth=0, bg=bg_colors[1], scrollregion=(0,0,500,500))
+		self.canvas = Canvas(self, borderwidth=0, bg=bg_colors[1], width=200, height=40, scrollregion=(0,0,500,500))
 		self.frame = Frame(self.canvas, bg=bg_colors[1])
 		self.vbar = Scrollbar(self, orient=VERTICAL, command=self.canvas.yview)
-		self.canvas.config(yscrollcommand=vbar.set)
+		self.canvas.config(yscrollcommand=self.vbar.set)
 		
 		self.vbar.pack(side=RIGHT, fill=Y)
 		self.canvas.pack(fill=Y, expand=True)
@@ -39,7 +39,7 @@ class VScrollable(Frame):
 		#self.frame.bind("<MouseWheel>", on_workspace_mousewheel)
 	
 	def onFrameConfigure(self, event):
-			self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+		self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 	
 	
 class SpriteGUI(Frame):
@@ -91,10 +91,10 @@ class Workspace(VScrollable):
 		self.delete_mode = False
 		
 		self.hbar = Scrollbar(self, orient=HORIZONTAL, command=self.canvas.xview)
-		self.canvas.config(xscrollcommand=hbar.set)
+		self.canvas.config(xscrollcommand=self.hbar.set)
 		self.hbar.pack(side=BOTTOM, fill=X)
 		
-		self.canvas.itemconfigure(self.window, (100,10), anchor="n")
+		self.canvas.itemconfigure(self.window,  anchor="n") #(100,10),
 	
 	def populate(self):
 	
@@ -190,6 +190,7 @@ class Panel(Frame):
 		self.frm_name = Frame(self, bg=bg_colors[0])
 		self.frm_name.pack(padx=5)
 		self.name_list = VScrollable(self)
+		self.name_list.pack(pady=5)
 		self.frm_submit = Frame(self, bg=bg_colors[0])
 		self.frm_submit.pack(side=BOTTOM, padx=5, pady=10)
 		self.frm_folder = Frame(self, bg=bg_colors[0])
@@ -199,7 +200,7 @@ class Panel(Frame):
 		self.delimiter = StringVar(value="_")
 		#bind delimiter change
 		self.delimiter.trace_add("write", lambda name, index, mode: update_file_labels())
-		self.ent_delimiter = Entry(self.frm_delimiter, textvariable=delimiter, fg=fg_color, bg=bg_colors[2], width=4, relief=FLAT)
+		self.ent_delimiter = Entry(self.frm_delimiter, textvariable=self.delimiter, fg=fg_color, bg=bg_colors[2], width=4, relief=FLAT)
 		self.ent_delimiter.pack(side=LEFT)
 		
 		self.btn_exclude_mode = Button(self.frm_mode, text="Exclude Mode", command=parent.set_delete_mode, fg=fg_color, bg=bg_colors[1], relief=FLAT)
@@ -208,7 +209,7 @@ class Panel(Frame):
 		self.btn_delete_mode.pack(side=LEFT, padx=5)
 		
 		self.ent_name = Entry(self.frm_name, fg=fg_color, bg=bg_colors[2], relief=FLAT)
-		self.ent_name.bind('<Return>', add_name)
+		self.ent_name.bind('<Return>', parent.add_name)
 		self.ent_name.pack(side=LEFT)
 		Button(self.frm_name, text="Add Name",command=parent.add_name, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5)
 		
@@ -216,10 +217,10 @@ class Panel(Frame):
 		self.lbl_folder.pack()
 		Button(self.frm_folder, text="Browse...",command=parent.open_folder, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
-		self.lbl_submit = Label(self.frm_save, text="", fg=fg_color, bg=bg_colors[0])
+		self.lbl_submit = Label(self.frm_submit, text="", fg=fg_color, bg=bg_colors[0])
 		self.lbl_submit.pack()
 		#Button(self.frm_save, text="Save Configuration",command=save, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
-		Button(self.frm_save, text="Export Sprites!",command=parent.export, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
+		Button(self.frm_submit, text="Export Sprites!",command=parent.export, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
 	
 
 class Editor(Frame):
@@ -229,40 +230,41 @@ class Editor(Frame):
 		self.panel.pack(side=LEFT, fill=Y)
 		self.workspace = Workspace(self, file, tile_size)
 		self.workspace.pack(side=LEFT, fill="both")
-		self.names_list = names
+		self.name_list = names
 		self.selected_name_index = -1
 		
 	
 	def set_delete_mode(self):
-		reset_selection()
+		self.reset_selection()
 		self.workspace.delete_mode = True
 		self.panel.btn_delete_mode["bg"] = select_color
 	
 	def set_exclude_mode(self):
-		reset_selection()
+		self.reset_selection()
 		self.workspace.exclude_mode = True
 		self.panel.btn_exclude_mode["bg"] = select_color
 	
 	def select_name(self, name):
-		reset_selection()
-		self.selected_name_index = name_list.index(name)
-		self.panel.name_list.pack_slaves()[self.selected_name_index]["bg"] = select_color #fix so proper button is selected
+		self.reset_selection()
+		self.selected_name_index = self.name_list.index(name)
+		self.panel.name_list.frame.pack_slaves()[self.selected_name_index]["bg"] = select_color #fix so proper button is selected
 	
 	def reset_selection(self):
 		self.workspace.exclude_mode = False
 		self.workspace.delete_mode = False
-		for button in self.panel.name_list.pack_slaves():
+		for button in self.panel.name_list.frame.pack_slaves():
 			button["bg"] = bg_colors[0]
 		self.panel.btn_delete_mode["bg"] = bg_colors[1]
 		self.panel.btn_exclude_mode["bg"] = bg_colors[1]
 	
-	def add_name(self):
+	def add_name(self, event=None):
 		new_name = self.panel.ent_name.get()
 		if new_name != "" and not self.name_list.count(new_name):
 			self.panel.ent_name.delete(0, len(new_name))
-			Button(self.panel.name_list, text=new_name, command=lambda x=new_name: self.select_name(x), fg=fg_color, bg=bg_colors[0], width=25, wraplength=175, relief=FLAT).pack(padx=5, pady=3)
-			#names_panel.update()
-			#names_canvas.config(width=200, scrollregion=(0,0,names_panel.winfo_width() + 10,names_panel.winfo_height() + 10))
+			Button(self.panel.name_list.frame, text=new_name, command=lambda x=new_name: self.select_name(x), fg=fg_color, bg=bg_colors[0], width=25, wraplength=175, relief=FLAT).pack(padx=5, pady=3)
+			self.name_list.append(new_name)
+			#self.panel.name_list.update()
+			#self.panel.name_list.canvas.config(width=200, scrollregion=(0,0,self.panel.name_list.winfo_width() + 10,self.panel.name_list.winfo_height() + 10))
 	
 	def open_folder():
 		folder = fd.askdirectory(mustexist=True)
@@ -289,7 +291,12 @@ class Splitter():
 		#def load():
 		#	with open("config.json") as json_file:
 		#		data = json.load(json_file)
-		#		
+		#	
+		def skip():
+			self.tile_width = 16
+			self.tile_height = 16
+			self.image = Image.open("C:/Users/Hekera/Desktop/textures/mixed_bricks_final.png")
+			self.editor()
 		
 		def verify():
 			if hasattr(self, "image"):
@@ -349,6 +356,7 @@ class Splitter():
 		error = Label(submit, text="", fg=fg_color, bg=bg_colors[0])
 		error.pack()
 		Button(submit, text="Let's go!",command=verify, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
+		Button(submit, text="Skip",command=skip, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
 		self.window.mainloop()
 	
@@ -383,7 +391,7 @@ class Splitter():
 		self.window.config(bg=bg_colors[0])
 		
 		self.editor = Editor(self.window, self.image, (self.tile_width, self.tile_height))
-		self.editor.pack()
+		self.editor.pack(side=LEFT, fill="both")
 		
 		
 		
