@@ -30,6 +30,8 @@ class FileRequester(Frame):
 			self.lbl_file["text"] = self.file[self.file.rindex("/") + 1:]
 		except AttributeError:
 			pass
+		except ValueError:
+			pass
 
 class ImageRequester(FileRequester):
 	def __init__(self, parent):
@@ -53,12 +55,12 @@ class VScrollable(Frame):
 		self.vbar.pack(side=RIGHT, fill=Y)
 		self.canvas.pack(fill=Y, expand=True)
 		self.window = self.canvas.create_window((100,10), window=self.frame, anchor="n", tags="self.frame")
-		self.frame.bind("<Configure>", self.onFrameConfigure)
+		self.frame.bind("<Configure>", self.on_frame_configure)
 		
 		self.canvas.bind("<MouseWheel>", self.on_mousewheel)
 		self.frame.bind("<MouseWheel>", self.on_mousewheel)
 	
-	def onFrameConfigure(self, event):
+	def on_frame_configure(self, event):
 		self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 	
 	def on_mousewheel(self, event):
@@ -80,12 +82,12 @@ class BothScrollable(Frame):
 		self.hbar.pack(side=BOTTOM, fill=X)
 		self.canvas.pack(fill=BOTH, expand=True)
 		self.window = self.canvas.create_window((10,10), window=self.frame, anchor="nw", tags="self.frame")
-		self.frame.bind("<Configure>", self.onFrameConfigure)
+		self.frame.bind("<Configure>", self.on_frame_configure)
 		
 		self.canvas.bind("<MouseWheel>", self.on_mousewheel)
 		self.frame.bind("<MouseWheel>", self.on_mousewheel)
 	
-	def onFrameConfigure(self, event):
+	def on_frame_configure(self, event):
 		self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 	
 	def on_mousewheel(self, event):
