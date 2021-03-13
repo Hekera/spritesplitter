@@ -359,18 +359,12 @@ class Splitter():
 		
 		Label(self.window, text="Welcome to the Ez Pz Sprite Splitter!", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
 		Label(self.window, text="Would you like to load a previous configuration or start from scratch?", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
-		Button(self.window, text="Start New",command=self.new, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
-		Button(self.window, text="Load from File",command=self.load, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
+		Button(self.window, text="Start New",command=self.new, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
+		Button(self.window, text="Load from File",command=self.load, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(pady=5)
 		
 		self.window.mainloop()
 
-	def new(self):
-		def skip():
-			self.tile_width = 16
-			self.tile_height = 16
-			self.image = Image.open("C:/Users/Hekera/Desktop/textures/mixed_bricks_final.png")
-			self.editor()
-		
+	def new(self):		
 		def verify():
 			if hasattr(image_input, "file"):
 				try:
@@ -416,7 +410,6 @@ class Splitter():
 		error = Label(submit, text="", fg=fg_color, bg=bg_colors[0])
 		error.pack()
 		Button(submit, text="Let's go!",command=verify, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
-		Button(submit, text="Skip",command=skip, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 		
 		self.window.mainloop()
 	
