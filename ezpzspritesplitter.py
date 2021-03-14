@@ -354,23 +354,36 @@ class Editor(Frame):
 	
 	def export(self):
 		if hasattr(self, "folder"):
-			for sprite_element in self.workspace.get_sprite_elements():
-				if not sprite_element.exclude:
-					sprite_element.sprite.save(path.join(self.folder, sprite_element.get_label() + ".png"))
-					self.panel.lbl_submit["text"] = "Sprites successfully saved!"
+			confirm = Confirm("This action will overwrite any existing images with the same name(s) in the selected directory. Proceed anyway?", self.save_sprites)
 		else:
 			self.panel.lbl_submit["text"] = "No directory selected!"
 	
+	def save_sprites(self, response):
+		if not response:
+			return
+		for sprite_element in self.workspace.get_sprite_elements():
+			if not sprite_element.exclude:
+				sprite_element.sprite.save(path.join(self.folder, sprite_element.get_label() + ".png"))
+		self.panel.lbl_submit["text"] = "Sprites successfully saved!"
+	
 	def save_config(self):
 		if hasattr(self, "folder"):
-			sprite_info = []
-			for sprite_element in self.workspace.get_sprite_elements():
-				sprite_info.append(sprite_element.__dict__())
-			with open(path.join(self.folder,"config.json"), "w") as json_file:
-				json.dump({"tile_size": (self.workspace.tile_width, self.workspace.tile_height), "image_size": (self.workspace.image.width, self.workspace.image.height), "available_names": self.workspace.name_list, "sprite_info": sprite_info}, json_file, indent=4)
-			self.panel.lbl_submit["text"] = "Config successfully saved as config.json!"
+			if path.exists(path.join(self.folder,"config.json")):
+				confirm = Confirm("A file named config.json already exists in the selected directory. This action will overwrite it. Proceed anyway?", self.dump_config)
+			else:
+				self.dump_config(True)
 		else:
 			self.panel.lbl_submit["text"] = "No directory selected!"
+	
+	def dump_config(self, response):
+		if not response:
+			return
+		sprite_info = []
+		for sprite_element in self.workspace.get_sprite_elements():
+			sprite_info.append(sprite_element.__dict__())
+		with open(path.join(self.folder,"config.json"), "w") as json_file:
+			json.dump({"tile_size": (self.workspace.tile_width, self.workspace.tile_height), "image_size": (self.workspace.image.width, self.workspace.image.height), "available_names": self.workspace.name_list, "sprite_info": sprite_info}, json_file, indent=4)
+		self.panel.lbl_submit["text"] = "Config successfully saved as config.json!"
 	
 	def load_config(self, data):
 		for name in data["available_names"]:
