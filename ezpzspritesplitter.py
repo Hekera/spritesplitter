@@ -34,19 +34,22 @@ class Confirm():
 		self.function(response)
 
 class FileRequester(Frame):
-	def __init__(self, parent, file_type):
+	def __init__(self, parent, file_type, function=None):
 		Frame.__init__(self, parent, bg=bg_colors[0])
 		self.lbl_file = Label(self, text="No file selected.", fg=fg_color, bg=bg_colors[0])
 		self.lbl_file.pack()
 		self.lbl_size = Label(self, text="", fg=fg_color, bg=bg_colors[0])
 		self.lbl_size.pack()
 		self.file_type = file_type
+		self.function = function
 		Button(self, text="Browse...",command=self.open_file, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 	
 	def open_file(self):
 		try:
 			self.file = fd.askopenfilename(filetypes=[self.file_type])
 			self.lbl_file["text"] = self.file[self.file.rindex("/") + 1:]
+			if self.function is not None:
+				self.function()
 		except AttributeError:
 			pass
 		except ValueError:
@@ -473,6 +476,16 @@ class Splitter():
 			if response:
 				self.edit()
 		
+		def on_file_load():
+			if size_input.ent_width.get() != "" and size_input.ent_height.get() != "":
+				return
+			with open(config_input.file) as json_file:
+				tile_size = tuple(json.load(json_file)["tile_size"])
+				if size_input.ent_width.get() == "":
+					size_input.ent_width.insert(0, tile_size[0])
+				if size_input.ent_height.get() == "":
+					size_input.ent_height.insert(0, tile_size[1])
+		
 		self.window.destroy()
 		self.window = Tk()
 		self.window.title("Load from Config")
@@ -488,7 +501,7 @@ class Splitter():
 		image_input = ImageRequester(inputs)
 		image_input.grid(row=1, column=0, padx=25, pady=5)
 		Label(inputs, text="Config", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=1, padx=25, pady=5)
-		config_input = FileRequester(inputs, ("JSON File",'.json'))
+		config_input = FileRequester(inputs, ("JSON File",'.json'), function=on_file_load)
 		config_input.grid(row=1, column=1, padx=25, pady=5)
 		size_input = SizeInput(inputs)
 		size_input.grid(row=1, column=2, padx=10, pady=5)
