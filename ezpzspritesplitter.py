@@ -13,6 +13,25 @@ tile_display_size = 80
 def get_resize(width, height):
 	multiplier = max(tile_display_size//width, tile_display_size//height)
 	return (multiplier*width, multiplier*height)
+	
+class Confirm():
+	def __init__(self, message, function):
+		self.window = Tk()
+		self.window.title("Warning")
+		self.window["bg"] = bg_colors[0]
+		self.function=function
+		
+		Label(self.window, text=message, wraplength=300, fg=fg_color, bg=bg_colors[0]).pack(pady=5)
+		frm_buttons = Frame(self.window, bg=bg_colors[0])
+		frm_buttons.pack(padx=5)
+		Button(frm_buttons, text="Yes",command=lambda x=True: self.answer(x), fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5, pady=5)
+		Button(frm_buttons, text="No",command=lambda x=False: self.answer(x), fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5, pady=5)
+		
+		self.window.mainloop()
+	
+	def answer(self, response):
+		self.window.destroy()
+		self.function(response)
 
 class FileRequester(Frame):
 	def __init__(self, parent, file_type):
@@ -41,6 +60,21 @@ class ImageRequester(FileRequester):
 		FileRequester.open_file(self)
 		self.file = Image.open(self.file)
 		self.lbl_size["text"] = f"{self.file.width} x {self.file.height}"
+
+class SizeInput(Frame):
+	def __init__(self, parent):
+		Frame.__init__(self, parent, bg=bg_colors[0])
+		
+		vcmd = (self.register(self.on_validate), '%P')
+		Label(self, text="Tile Width:", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=0, pady=5)
+		Label(self, text="Tile Height:", fg=fg_color, bg=bg_colors[0]).grid(row=1, column=0, pady=5)
+		self.ent_width = Entry(self, width=5, fg=fg_color, bg=bg_colors[2], relief=FLAT, validate="key", validatecommand=vcmd)
+		self.ent_width.grid(row=0, column=1, padx=5, pady=5)
+		self.ent_height = Entry(self, width=5, fg=fg_color, bg=bg_colors[2], relief=FLAT, validate="key", validatecommand=vcmd)
+		self.ent_height.grid(row=1, column=1, padx=5, pady=5)
+	
+	def on_validate(self, P):
+		return P == "" or P.isnumeric()
 
 class VScrollable(Frame):
 	def __init__(self, parent):
@@ -368,21 +402,20 @@ class Splitter():
 
 	def new(self):		
 		def verify():
-			if hasattr(image_input, "file"):
-				try:
-					self.image = image_input.file
-					input_width = int(width_entry.get())
-					input_height = int(height_entry.get())
-					if self.image.width % input_width == 0 and self.image.height % input_height == 0:
-						self.tile_size = (input_width, input_height)
-						self.edit()
-					else:
-						error["text"] = "Image size must be divisible by tile size!"
-				except ValueError:
-					error["text"] = "You must input integral values!"
-			else:
+			if not hasattr(image_input, "file"):
 				error["text"] = "You must choose an image file!"
-		
+				return
+			if size_input.ent_width.get() == "" or size_input.ent_height.get() == "":
+				error["text"] = "You must input tile width and height values!"
+				return
+			self.image = image_input.file
+			input_width = int(size_input.ent_width.get())
+			input_height = int(size_input.ent_height.get())
+			if self.image.width % input_width != 0 or self.image.height % input_height != 0:
+				error["text"] = "Image size must be divisible by tile size!"
+				return
+			self.tile_size = (input_width, input_height)
+			self.edit()
 		
 		self.window.destroy()
 		self.window = Tk()
@@ -396,18 +429,9 @@ class Splitter():
 		submit.pack()
 		
 		image_input = ImageRequester(inputs)
-		image_input.grid(row=1, column=0, padx=25, pady=5)
-		dimension_label = Frame(inputs, bg=bg_colors[0])
-		dimension_label.grid(row=1, column=1, pady=5)
-		dimension_input = Frame(inputs, bg=bg_colors[0])
-		dimension_input.grid(row=1, column=2, pady=5)
-		
-		Label(dimension_label, text="Tile Width:", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
-		width_entry = Entry(dimension_input, width=5, fg=fg_color, bg=bg_colors[2], relief=FLAT)
-		width_entry.pack(padx=5, pady=5)
-		Label(dimension_label, text="Tile Height:", fg=fg_color, bg=bg_colors[0]).pack(pady=5)
-		height_entry = Entry(dimension_input, width=5, fg=fg_color, bg=bg_colors[2], relief=FLAT)
-		height_entry.pack(padx=5, pady=5)
+		image_input.grid(row=0, column=0, padx=25, pady=5)
+		size_input = SizeInput(inputs)
+		size_input.grid(row=0, column=1, padx=25, pady=5)
 		
 		error = Label(submit, text="", fg=fg_color, bg=bg_colors[0])
 		error.pack()
@@ -417,37 +441,35 @@ class Splitter():
 	
 	def load(self):
 		def verify():
-			if hasattr(image_input, "file"):
-				if hasattr(config_input, "file"):
-					self.image = image_input.file
-					with open(config_input.file) as json_file:
-						self.data = json.load(json_file)
-						self.tile_size = self.data["tile_size"]
-						if self.image.width % self.tile_size[0] == 0 and self.image.height % self.tile_size[1] == 0:
-							if (self.data["image_size"][0] != self.image.width or self.data["image_size"][1] != self.image.height):
-								self.warn = Tk()
-								self.warn.title("Warning")
-								self.warn["bg"] = bg_colors[0]
-								
-								Label(self.warn, text="The size of the selected image and the size of the original image the config was saved from do not match. Are you sure you want to proceed?", wraplength=300, fg=fg_color, bg=bg_colors[0]).pack(pady=5)
-								frm_buttons = Frame(self.warn, bg=bg_colors[0])
-								frm_buttons.pack(padx=5)
-								Button(frm_buttons, text="Yes",command= lambda x=True: answer(x), fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5, pady=5)
-								Button(frm_buttons, text="No",command=lambda x=False: answer(x), fg=fg_color, bg=bg_colors[1], relief=FLAT).pack(side=LEFT, padx=5, pady=5)
-								
-								self.warn.mainloop()
-							else:
-								answer(True)
-						else:
-							error["text"] = f"Image size must be divisible by tile size ({input_size[0]}x{input_size[1]})!"
-				else:
-					error["text"] = "You must choose a config file!"
-			else:
+			if not hasattr(image_input, "file"):
 				error["text"] = "You must choose an image file!"
+				return
+			if not hasattr(config_input, "file"):
+				error["text"] = "You must choose a config file!"
+				return
+			if size_input.ent_width.get() == "" or size_input.ent_height.get() == "":
+				error["text"] = "You must input tile width and height values!"
+				return
+			self.image = image_input.file
+			input_width = int(size_input.ent_width.get())
+			input_height = int(size_input.ent_height.get())
+			with open(config_input.file) as json_file:
+				self.data = json.load(json_file)
+				if self.image.width % input_width != 0 and self.image.height % input_height != 0:
+					error["text"] = "Image size must be divisible by tile size!"
+					return
+				message = ""
+				if (self.data["image_size"][0] != self.image.width or self.data["image_size"][1] != self.image.height):
+					message += "The size of the selected image and the size of the original image the config was saved from do not match. "
+				if input_width != self.data["tile_size"][0] or input_height != self.data["tile_size"][1]:
+					message += "The input tile size and the tile size of the original image the config was saved from do not match. "
+				self.tile_size = (input_width, input_height)
+				if message == "":
+					answer(True)
+				else:
+					self.confirm = Confirm(message + "Proceed anyway?", answer)
 		
 		def answer(response):
-			if hasattr(self, "warn"):
-				self.warn.destroy()
 			if response:
 				self.edit()
 		
@@ -462,12 +484,14 @@ class Splitter():
 		submit = Frame(self.window, padx=5, pady=10, bg=bg_colors[0])
 		submit.pack()
 		
-		Label(inputs, text="Image", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=0, padx=25, pady=5)
+		Label(inputs, text="Image", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=0, padx=10, pady=5)
 		image_input = ImageRequester(inputs)
 		image_input.grid(row=1, column=0, padx=25, pady=5)
 		Label(inputs, text="Config", fg=fg_color, bg=bg_colors[0]).grid(row=0, column=1, padx=25, pady=5)
 		config_input = FileRequester(inputs, ("JSON File",'.json'))
 		config_input.grid(row=1, column=1, padx=25, pady=5)
+		size_input = SizeInput(inputs)
+		size_input.grid(row=1, column=2, padx=10, pady=5)
 		
 		error = Label(submit, text="", fg=fg_color, bg=bg_colors[0])
 		error.pack()
