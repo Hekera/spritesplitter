@@ -44,7 +44,11 @@ class FileRequester(Frame):
 		self.function = function
 		Button(self, text="Browse...",command=self.open_file, fg=fg_color, bg=bg_colors[1], relief=FLAT).pack()
 	
-	def open_file(self):
+	def open_file(self, path=None):
+		if path is not None:
+			self.file = path
+			self.lbl_file["text"] = self.file[self.file.rindex("/") + 1:]
+			return
 		try:
 			self.file = fd.askopenfilename(filetypes=[self.file_type])
 			self.lbl_file["text"] = self.file[self.file.rindex("/") + 1:]
@@ -59,8 +63,8 @@ class ImageRequester(FileRequester):
 	def __init__(self, parent):
 		FileRequester.__init__(self, parent, ("PNG File",'.png'))
 	
-	def open_file(self):
-		FileRequester.open_file(self)
+	def open_file(self, path=None):
+		FileRequester.open_file(self, path)
 		self.file = Image.open(self.file)
 		self.lbl_size["text"] = f"{self.file.width} x {self.file.height}"
 
@@ -143,7 +147,7 @@ class SpriteElement(Frame):
 		self.exclude = exclude
 		self.workspace = parent.top
 		self.button = Button(self, image=self.thumbnail, command=lambda x=index[0],y=index[1]: self.workspace.on_sprite_click(x,y), relief=FLAT, bg=bg_colors[1], borderwidth=0)
-		self.label = Label(self, text=self.get_default(), fg=fg_color, bg=bg_colors[1], wraplength=tile_display_size)
+		self.label = Label(self, text=self.get_default(), fg=fg_color, bg=bg_colors[1], wraplength=get_resize(image.width, image.height)[0])
 		
 		self.button.pack()
 		self.label.pack()
@@ -382,7 +386,7 @@ class Editor(Frame):
 		for sprite_element in self.workspace.get_sprite_elements():
 			sprite_info.append(sprite_element.__dict__())
 		with open(path.join(self.folder,"config.json"), "w") as json_file:
-			json.dump({"tile_size": (self.workspace.tile_width, self.workspace.tile_height), "image_size": (self.workspace.image.width, self.workspace.image.height), "available_names": self.workspace.name_list, "sprite_info": sprite_info}, json_file, indent=4)
+			json.dump({"image_path": self.workspace.image.filename,"tile_size": (self.workspace.tile_width, self.workspace.tile_height), "image_size": (self.workspace.image.width, self.workspace.image.height), "available_names": self.workspace.name_list, "sprite_info": sprite_info}, json_file, indent=4)
 		self.panel.lbl_submit["text"] = "Config successfully saved as config.json!"
 	
 	def load_config(self, data):
@@ -490,14 +494,17 @@ class Splitter():
 				self.edit()
 		
 		def on_file_load():
-			if size_input.ent_width.get() != "" and size_input.ent_height.get() != "":
+			if size_input.ent_width.get() != "" and size_input.ent_height.get() != "" and hasattr(image_input, "file"):
 				return
 			with open(config_input.file) as json_file:
-				tile_size = tuple(json.load(json_file)["tile_size"])
+				data = json.load(json_file)
+				tile_size = tuple(data["tile_size"])
 				if size_input.ent_width.get() == "":
 					size_input.ent_width.insert(0, tile_size[0])
 				if size_input.ent_height.get() == "":
 					size_input.ent_height.insert(0, tile_size[1])
+				if "image_path" in data and not hasattr(image_input, "file") and path.exists(data["image_path"]):
+					image_input.open_file(data["image_path"])
 		
 		self.window.destroy()
 		self.window = Tk()
