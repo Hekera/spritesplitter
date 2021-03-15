@@ -18,6 +18,6 @@ Once you are done, select a directory to export your sprites into, and press the
 
 ### Load Configuration
 To load a config, press the "Load from File" option upon startup instead.
-When you select a config file, the fields for tile width and height will automatically populate with values from the original file; however, you are not obligated to use these values.
+When you select a config file, the selected image and fields for tile width and height will automatically populate with values from the original file. However, you are not obligated to use the prepopulated image/values.
 A warning will pop up if the image or tile size differs from the original file.
-If you choose to continute, the editor will open up, populated with the saved names and exclusions.
+If you choose to continue, the editor will open up, populated with the saved names and exclusions.
