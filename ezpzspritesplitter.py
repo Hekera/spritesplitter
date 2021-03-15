@@ -390,17 +390,19 @@ class Editor(Frame):
 		self.panel.lbl_submit["text"] = "Config successfully saved as config.json!"
 	
 	def load_config(self, data):
-		for name in data["available_names"]:
-			self.panel.ent_name.insert(0, name)
-			self.add_name()
-		list = self.workspace.get_sprite_elements()
-		for info in data["sprite_info"]:
-			for sprite_element in list:
-				if sprite_element.index == tuple(info["index"]):
-					sprite_element.names = info["names"]
-					sprite_element.exclude = info["exclude"]
-					list.remove(sprite_element)
-					break
+		if "available_names" in data:
+			for name in data["available_names"]:
+				self.panel.ent_name.insert(0, name)
+				self.add_name()
+		if "sprite_info" in data:
+			list = self.workspace.get_sprite_elements()
+			for info in data["sprite_info"]:
+				for sprite_element in list:
+					if sprite_element.index == tuple(info["index"]):
+						sprite_element.names = info["names"]
+						sprite_element.exclude = info["exclude"]
+						list.remove(sprite_element)
+						break
 		self.workspace.update_file_labels()
 
 class Splitter():
